@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Medical-grade color system */
+    --background: 210 17% 98%;
+    --foreground: 215 25% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 20%;
+
+    /* Hospital Blue - Primary brand color */
+    --primary: 211 100% 40%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 211 100% 35%;
+
+    /* Clinical Green - Success/Available states */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --success-light: 142 76% 95%;
+
+    /* Warning Yellow - Moderate wait times */
+    --warning: 45 93% 47%;
+    --warning-foreground: 0 0% 100%;
+    --warning-light: 45 93% 95%;
+
+    /* Critical Red - Urgent/Long wait */
+    --critical: 0 84% 60%;
+    --critical-foreground: 0 0% 100%;
+    --critical-light: 0 84% 97%;
+
+    --secondary: 210 16% 93%;
+    --secondary-foreground: 215 25% 20%;
+
+    --muted: 210 16% 96%;
+    --muted-foreground: 215 16% 46%;
+
+    --accent: 211 100% 96%;
+    --accent-foreground: 211 100% 40%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 211 100% 40%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar - Medical interface */
+    --sidebar-background: 215 28% 17%;
+    --sidebar-foreground: 210 17% 98%;
+    --sidebar-primary: 211 100% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 25% 23%;
+    --sidebar-accent-foreground: 210 17% 98%;
+    --sidebar-border: 215 25% 23%;
+    --sidebar-ring: 211 100% 40%;
+
+    /* AI Interface colors */
+    --ai-recording: 0 84% 60%;
+    --ai-processing: 45 93% 47%;
+    --ai-ready: 142 76% 36%;
+    --ai-transcript-doctor: 211 100% 96%;
+    --ai-transcript-patient: 142 76% 95%;
+
+    /* Status indicators */
+    --status-available: 142 76% 36%;
+    --status-busy: 45 93% 47%;
+    --status-offline: 215 16% 46%;
+
+    /* Gradient utilities */
+    --gradient-medical: linear-gradient(135deg, hsl(211 100% 40%) 0%, hsl(211 100% 50%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(142 76% 46%) 100%);
+    
+    /* Shadows */
+    --shadow-card: 0 2px 8px -2px hsl(215 25% 20% / 0.08);
+    --shadow-elevated: 0 8px 24px -6px hsl(215 25% 20% / 0.12);
+    
+    /* Animation variables */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

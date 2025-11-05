@@ -1,0 +1,48 @@
+import { Outlet } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "./AppSidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SubEntryProvider } from "@/contexts/SubEntryContext";
+import { SubEntrySwitcher } from "./SubEntrySwitcher";
+import { RoleSwitcher } from "./RoleSwitcher";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "react-router-dom";
+import { useSubEntry } from "@/contexts/SubEntryContext";
+
+export const MainLayout = () => {
+  const { user } = useAuth();
+  const location = useLocation();
+  const isPublic = location.pathname === "/" || location.pathname.startsWith("/onboard");
+  const showSidebar = Boolean(user) && !isPublic;
+
+  const EntityIndicator = () => {
+    const { currentEntity } = useSubEntry();
+    if (!currentEntity) return null;
+    return (
+      <span>
+        Entity: <span className="font-medium">{currentEntity.name}</span>
+      </span>
+    );
+  };
+  return (
+    <SubEntryProvider userId={"user-1"}>
+      <SidebarProvider defaultOpen={true}>
+        <div className="flex min-h-screen w-full">
+          {showSidebar && <AppSidebar />}
+          <div className="flex flex-1 flex-col">
+            <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 transition-all duration-200">
+              {showSidebar && <SidebarTrigger className="transition-transform duration-200 hover:scale-110" aria-label="Toggle sidebar" />}
+              <div className="flex-1 text-sm text-muted-foreground"><EntityIndicator /></div>
+              <RoleSwitcher />
+              {showSidebar && <SubEntrySwitcher />}
+            </header>
+            <main className="flex-1 p-6">
+              <Outlet />
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
+    </SubEntryProvider>
+  );
+};
+

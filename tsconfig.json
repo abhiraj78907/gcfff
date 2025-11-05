@@ -1,0 +1,22 @@
+{
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@patient/*": ["./apps/health-buddy-vibe/src/*"],
+      "@seva/*": ["./apps/seva-gate-dash/src/*"],
+      "@admin/*": ["./apps/medichain-nexus-suite/src/*"],
+      "@welcome/*": ["./apps/medichain-sparkle-onboard/src/*"],
+      "@gate/*": ["./apps/health-chain-gate/src/*"],
+      "@doctor/*": ["./apps/doclens-ai-assist/src/*"]
+    },
+    "noImplicitAny": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "noUnusedLocals": false,
+    "strictNullChecks": false
+  }
+}

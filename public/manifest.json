@@ -1,0 +1,11 @@
+{
+  "name": "MediChain - Healthcare Management Platform",
+  "short_name": "MediChain",
+  "description": "Unified healthcare platform connecting hospitals, clinics, and pharmacies",
+  "icons": [],
+  "theme_color": "#0ea5e9",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/"
+}

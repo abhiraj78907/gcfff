@@ -1,0 +1,101 @@
+import type { Entity, SubEntry } from "@/types/entities";
+
+export const mockSubEntries: SubEntry[] = [
+  // Apollo Hospital (entity-apo)
+  {
+    id: "apo-sub-main",
+    entityId: "entity-apo",
+    name: "Apollo Hospital - Main",
+    location: "Hyderabad",
+    address: "Apollo Health City, Jubilee Hills",
+    contactPerson: "Dr. A. Rao",
+    email: "admin@apollo.example",
+    phone: "+91-40-12345678",
+    status: "active",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    metadata: { beds: 1200, specialties: ["Cardiology", "Orthopedics"] },
+  },
+  {
+    id: "apo-sub-cardiac",
+    entityId: "entity-apo",
+    name: "Apollo - Cardiac Center",
+    location: "Hyderabad",
+    address: "Apollo Cardiac Block",
+    contactPerson: "Dr. B. Iyer",
+    email: "cardiac@apollo.example",
+    phone: "+91-40-12340000",
+    status: "active",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    metadata: { beds: 200, specialties: ["Cardiology"] },
+  },
+  // GreenLife Clinic (entity-grn)
+  {
+    id: "grn-sub-main",
+    entityId: "entity-grn",
+    name: "GreenLife Clinic - Central",
+    location: "Bengaluru",
+    address: "MG Road",
+    contactPerson: "Dr. C. Menon",
+    email: "info@greenlife.example",
+    phone: "+91-80-98765432",
+    status: "active",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    metadata: { specialties: ["General Medicine", "Pediatrics"] },
+  },
+  // MediTown Pharmacy (entity-med)
+  {
+    id: "med-sub-main",
+    entityId: "entity-med",
+    name: "MediTown Pharmacy - Downtown",
+    location: "Pune",
+    address: "FC Road",
+    contactPerson: "Priya Shah",
+    email: "contact@meditown.example",
+    phone: "+91-20-22334455",
+    status: "active",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    metadata: { licenses: ["Retail", "Wholesale"] },
+  },
+];
+
+export const mockEntities: Entity[] = [
+  {
+    id: "entity-apo",
+    type: "hospital",
+    name: "Apollo Hospital",
+    licenseNumber: "APO-HSP-001",
+    registrationDate: "2019-03-15",
+    status: "active",
+    subEntries: mockSubEntries.filter((s) => s.entityId === "entity-apo"),
+    createdAt: "2019-03-15",
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "entity-grn",
+    type: "clinic",
+    name: "GreenLife Clinic",
+    licenseNumber: "GRN-CLN-042",
+    registrationDate: "2021-07-22",
+    status: "active",
+    subEntries: mockSubEntries.filter((s) => s.entityId === "entity-grn"),
+    createdAt: "2021-07-22",
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "entity-med",
+    type: "pharmacy",
+    name: "MediTown Pharmacy",
+    licenseNumber: "MED-PHA-314",
+    registrationDate: "2022-11-05",
+    status: "active",
+    subEntries: mockSubEntries.filter((s) => s.entityId === "entity-med"),
+    createdAt: "2022-11-05",
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+
