@@ -12,9 +12,9 @@ import Settings from "@/components/dashboards/receptionist/Settings";
 const ReceptionistDashboard = () => {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-[100svh] flex w-full bg-background">
         <ReceptionistSidebar />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 min-h-0 overflow-y-auto">
           <Routes>
             <Route path="/" element={<DashboardHome />} />
             <Route path="/register" element={<PatientRegistration />} />

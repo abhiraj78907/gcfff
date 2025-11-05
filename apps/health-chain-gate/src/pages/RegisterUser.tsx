@@ -226,7 +226,7 @@ const RegisterUser = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+    <div className="min-h-[100svh] bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <header className="border-b bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
@@ -241,7 +241,7 @@ const RegisterUser = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <div className="container mx-auto px-4 py-6 md:py-8 max-w-3xl min-h-0">
         <Link to="/onboard/success" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back
@@ -267,22 +267,22 @@ const RegisterUser = () => {
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="full-name">Full Name *</Label>
-                  <Input id="full-name" placeholder="Enter your full name" required className="h-11" />
+                  <Input id="full-name" placeholder="Enter your full name" required className="h-11 text-base" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address *</Label>
-                  <Input id="email" type="email" placeholder="you@example.com" required className="h-11" />
+                  <Input id="email" type="email" placeholder="you@example.com" required className="h-11 text-base" />
                 </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number *</Label>
-                  <Input id="phone" type="tel" placeholder="+91 XXXXXXXXXX" required className="h-11" />
+                  <Input id="phone" type="tel" placeholder="+91 XXXXXXXXXX" required className="h-11 text-base" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="employee-id">Employee ID (Optional)</Label>
-                  <Input id="employee-id" placeholder="EMP-XXXX" className="h-11" />
+                  <Input id="employee-id" placeholder="EMP-XXXX" className="h-11 text-base" />
                 </div>
               </div>
             </div>
@@ -320,7 +320,7 @@ const RegisterUser = () => {
             <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="institution">Institution *</Label>
-                <Input id="institution" placeholder="Search or select institution" required className="h-11" />
+                <Input id="institution" placeholder="Search or select institution" required className="h-11 text-base" />
                 <p className="text-xs text-muted-foreground">Start typing to search for your institution</p>
               </div>
 
@@ -333,7 +333,7 @@ const RegisterUser = () => {
                         <div className="space-y-2">
                           <Label htmlFor="doctor-specialization">Doctor Specialization *</Label>
                           <Select value={doctorSpecialization} onValueChange={setDoctorSpecialization}>
-                            <SelectTrigger id="doctor-specialization" aria-label="Select specialization">
+                            <SelectTrigger id="doctor-specialization" aria-label="Select specialization" className="h-11 text-base">
                               <SelectValue placeholder="e.g., Cardiology, General Medicine" />
                             </SelectTrigger>
                             <SelectContent>
@@ -346,7 +346,7 @@ const RegisterUser = () => {
                         <div className="space-y-2">
                           <Label htmlFor="doctor-experience">Years of Experience *</Label>
                           <Select value={doctorExperience} onValueChange={setDoctorExperience}>
-                            <SelectTrigger id="doctor-experience" aria-label="Select years of experience">
+                            <SelectTrigger id="doctor-experience" aria-label="Select years of experience" className="h-11 text-base">
                               <SelectValue placeholder="Select range (5-year buckets)" />
                             </SelectTrigger>
                             <SelectContent>
@@ -358,11 +358,11 @@ const RegisterUser = () => {
                         </div>
                         <div className="space-y-2 md:col-span-2">
                           <Label htmlFor="doctor-qual">Educational Qualifications (Optional)</Label>
-                          <Input id="doctor-qual" placeholder="e.g., MBBS, MD; AIIMS" value={doctorQualifications} onChange={(e) => setDoctorQualifications(e.target.value)} className="h-11" />
+                          <Input id="doctor-qual" placeholder="e.g., MBBS, MD; AIIMS" value={doctorQualifications} onChange={(e) => setDoctorQualifications(e.target.value)} className="h-11 text-base" />
                         </div>
                         <div className="space-y-2 md:col-span-2">
                           <Label htmlFor="doctor-service">Past Service (Optional)</Label>
-                          <Input id="doctor-service" placeholder="Hospitals, years, specialties" value={doctorPastService} onChange={(e) => setDoctorPastService(e.target.value)} className="h-11" />
+                          <Input id="doctor-service" placeholder="Hospitals, years, specialties" value={doctorPastService} onChange={(e) => setDoctorPastService(e.target.value)} className="h-11 text-base" />
                         </div>
                       </div>
                       <div className="grid md:grid-cols-3 gap-4 mt-4">
@@ -394,7 +394,7 @@ const RegisterUser = () => {
                       <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="pharma-exp">Past Experience (Optional)</Label>
-                          <Input id="pharma-exp" placeholder="e.g., 3 years retail pharmacy" value={pharmacyExperience} onChange={(e) => setPharmacyExperience(e.target.value)} className="h-11" />
+                          <Input id="pharma-exp" placeholder="e.g., 3 years retail pharmacy" value={pharmacyExperience} onChange={(e) => setPharmacyExperience(e.target.value)} className="h-11 text-base" />
                         </div>
                       </div>
                       <div className="grid md:grid-cols-3 gap-4 mt-4">
@@ -436,11 +436,11 @@ const RegisterUser = () => {
                       <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="patient-age">Age *</Label>
-                          <Input id="patient-age" type="number" min={0} value={patientAge} onChange={(e) => setPatientAge(e.target.value)} required className="h-11" />
+                          <Input id="patient-age" type="number" min={0} value={patientAge} onChange={(e) => setPatientAge(e.target.value)} required className="h-11 text-base" />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="patient-gender">Gender *</Label>
-                          <Input id="patient-gender" placeholder="e.g., Female" value={patientGender} onChange={(e) => setPatientGender(e.target.value)} required className="h-11" />
+                          <Input id="patient-gender" placeholder="e.g., Female" value={patientGender} onChange={(e) => setPatientGender(e.target.value)} required className="h-11 text-base" />
                         </div>
                       </div>
                       <div className="grid md:grid-cols-3 gap-4 mt-4">
@@ -464,13 +464,14 @@ const RegisterUser = () => {
                       type={showPassword ? "text" : "password"}
                       placeholder="Create strong password"
                       required
+                      className="h-11 text-base pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -485,13 +486,14 @@ const RegisterUser = () => {
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="Re-enter password"
                       required
+                      className="h-11 text-base pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
-                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
@@ -511,11 +513,11 @@ const RegisterUser = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              <Button type="submit" className="flex-1 h-11 text-base" disabled={isSubmitting}>
                 {isSubmitting ? "Creating Account..." : "Create Account"}
               </Button>
-              <Button type="button" variant="secondary" onClick={saveDraft} className="flex-1 sm:flex-initial">Save Draft</Button>
-              <Button type="button" variant="outline" onClick={() => navigate("/onboard/login")} className="flex-1 sm:flex-initial">
+              <Button type="button" variant="secondary" onClick={saveDraft} className="flex-1 sm:flex-initial h-11 text-base">Save Draft</Button>
+              <Button type="button" variant="outline" onClick={() => navigate("/onboard/login")} className="flex-1 sm:flex-initial h-11 text-base">
                 Cancel
               </Button>
             </div>

@@ -23,11 +23,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <SidebarProvider>
-          <div className="flex min-h-screen w-full">
+          <div className="flex min-h-[100svh] w-full">
             <DoctorSidebar />
-            <div className="flex flex-1 flex-col">
+            <div className="flex flex-1 flex-col min-h-0">
               <DoctorHeader />
-              <main className="flex-1 overflow-y-auto bg-background p-6">
+              <main className="flex-1 min-h-0 overflow-y-auto bg-background p-4 md:p-6">
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/consultation" element={<ActiveConsultation />} />

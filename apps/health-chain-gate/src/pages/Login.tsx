@@ -108,8 +108,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-[100svh] bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
+      <div className="w-full max-w-md min-h-0">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <Link to="/" className="flex items-center gap-2 mb-4">
@@ -121,8 +121,8 @@ const Login = () => {
           <p className="text-muted-foreground text-center">Sign in to access your healthcare dashboard</p>
         </div>
 
-        <Card className="p-8">
-          <form onSubmit={handleLogin} className="space-y-6">
+        <Card className="p-6 md:p-8">
+          <form onSubmit={handleLogin} className="space-y-5">
             <DemoLogin
               onAutofill={({ entityId, role, username: u, password: p }) => {
                 setInstitutionId(entityId);
@@ -134,13 +134,13 @@ const Login = () => {
 
             <div className="space-y-2">
               <Label htmlFor="institution">Institution ID</Label>
-              <Input id="institution" placeholder="e.g., entity-apo" value={institutionId} onChange={(e) => setInstitutionId(e.target.value)} required />
+              <Input id="institution" placeholder="e.g., entity-apo" value={institutionId} onChange={(e) => setInstitutionId(e.target.value)} required className="h-11 text-base" />
             </div>
 
             <div className="space-y-2">
               <Label>Role</Label>
               <Select value={chosenRole} onValueChange={(v) => setChosenRole(v as UserRole)}>
-                <SelectTrigger aria-label="Select role for this session">
+                <SelectTrigger aria-label="Select role for this session" className="h-11 text-base">
                   <SelectValue placeholder="Auto-detect or choose role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -164,6 +164,7 @@ const Login = () => {
                 autoComplete="email"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                className="h-11 text-base"
               />
             </div>
 
@@ -178,13 +179,14 @@ const Login = () => {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="h-11 text-base pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
@@ -209,7 +211,7 @@ const Login = () => {
               </button>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full h-11 text-base" disabled={isLoading}>
               {isLoading ? "Signing In..." : "Sign In"}
             </Button>
           </form>

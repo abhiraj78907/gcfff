@@ -105,17 +105,17 @@ export default function ActiveConsultation() {
   ];
 
   return (
-    <div className="h-[calc(100vh-5rem)]">
-      <div className="mb-4">
+    <div className="min-h-[100svh] flex flex-col">
+      <div className="mb-4 px-1 md:px-0">
         <h2 className="text-2xl font-bold text-foreground">
           Consultation: {patient.name} ({patient.age})
         </h2>
         <p className="text-sm text-muted-foreground">Patient ID: {patient.id}</p>
       </div>
 
-      <div className="grid lg:grid-cols-5 gap-6 h-[calc(100%-5rem)]">
+      <div className="lg:grid grid-cols-5 gap-4 md:gap-6 flex-1 min-h-0 px-1 md:px-0">
         {/* Left Panel - Patient Context (40%) */}
-        <div className="lg:col-span-2 space-y-4 overflow-y-auto">
+        <div className="lg:col-span-2 space-y-4 lg:overflow-y-auto min-h-0">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Patient Context</CardTitle>
@@ -178,7 +178,7 @@ export default function ActiveConsultation() {
         </div>
 
         {/* Right Panel - AI Interface (60%) */}
-        <div className="lg:col-span-3 space-y-4 overflow-y-auto">
+        <div className="lg:col-span-3 space-y-4 lg:overflow-y-auto min-h-0">
           {/* AI Recording Section */}
           <Card>
             <CardHeader className="pb-3">
