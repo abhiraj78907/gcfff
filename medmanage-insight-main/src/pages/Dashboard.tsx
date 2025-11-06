@@ -3,24 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, DollarSign, Package, AlertTriangle, TrendingUp } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { getSalesByEntity, getTopMedicinesByEntity, getPrescriptionsByEntity, getMedicinesByEntity } from "@/lib/mockData";
-import { useSubEntry } from "@/contexts/SubEntryContext";
+import { mockSalesData, mockTopMedicines, mockPrescriptions, mockMedicines } from "@/lib/mockData";
 
 export default function Dashboard() {
-  const { currentEntityId } = useSubEntry();
-  const medicines = getMedicinesByEntity(currentEntityId);
-  const salesData = getSalesByEntity(currentEntityId);
-  const topMeds = getTopMedicinesByEntity(currentEntityId);
-  const prescriptions = getPrescriptionsByEntity(currentEntityId);
-
-  const lowStockCount = medicines.filter(m => m.quantity < m.reorderThreshold).length;
-  const expiringCount = medicines.filter(m => {
+  const lowStockCount = mockMedicines.filter(m => m.quantity < m.reorderThreshold).length;
+  const expiringCount = mockMedicines.filter(m => {
     const daysUntilExpiry = Math.floor((new Date(m.expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
     return daysUntilExpiry < 90 && daysUntilExpiry > 0;
   }).length;
 
-  const todaysSales = salesData[salesData.length - 1]?.sales ?? 0;
-  const todaysPrescriptions = prescriptions.filter(p => p.date === "2024-01-15").length;
+  const todaysSales = mockSalesData[mockSalesData.length - 1].sales;
+  const todaysPrescriptions = mockPrescriptions.filter(p => p.date === "2024-01-15").length;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -70,7 +63,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={salesData}>
+              <LineChart data={mockSalesData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="date" className="text-xs" />
                 <YAxis className="text-xs" />
@@ -99,7 +92,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topMeds.slice(0, 6)} layout="vertical">
+              <BarChart data={mockTopMedicines.slice(0, 6)} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis type="number" className="text-xs" />
                 <YAxis dataKey="name" type="category" className="text-xs" width={100} />
@@ -127,7 +120,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {medicines
+            {mockMedicines
               .filter(m => m.quantity < m.reorderThreshold)
               .slice(0, 5)
               .map(medicine => (
@@ -151,7 +144,7 @@ export default function Dashboard() {
             <CardTitle>Recent Prescriptions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {prescriptions.slice(0, 5).map(prescription => (
+            {mockPrescriptions.slice(0, 5).map(prescription => (
               <div key={prescription.id} 
                    className="flex items-center justify-between rounded-lg border border-border p-3 transition-all duration-200 hover:bg-muted/50 hover:shadow-sm cursor-pointer"
                    role="button"

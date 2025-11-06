@@ -76,7 +76,7 @@ const doctorMenuItems = [
 
 const pharmacistMenuItems = [
   { title: "Pharmacy Dashboard", url: "/pharmacy", icon: LayoutDashboard },
-  { title: "Dispense Prescriptions", url: "/pharmacy/prescriptions", icon: FileText },
+  { title: "Prescriptions", url: "/pharmacy/prescriptions", icon: FileText },
   { title: "Inventory", url: "/pharmacy/inventory", icon: Package },
   { title: "Procurement", url: "/pharmacy/procurement", icon: ShoppingCart },
   { title: "Analytics", url: "/pharmacy/analytics", icon: BarChart3 },

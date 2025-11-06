@@ -21,5 +21,3 @@ const PharmacistRoutes = () => {
 };
 
 export default PharmacistRoutes;
-
-

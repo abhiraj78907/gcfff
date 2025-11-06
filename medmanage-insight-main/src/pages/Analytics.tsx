@@ -2,16 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, TrendingUp, DollarSign, Users } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { getSalesByEntity, getTopMedicinesByEntity, getDoctorPrescriptionsByEntity, mockRevenueData } from "@/lib/mockData";
-import { useSubEntry } from "@/contexts/SubEntryContext";
+import { mockSalesData, mockTopMedicines, mockDoctorPrescriptions, mockRevenueData } from "@/lib/mockData";
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 export default function Analytics() {
-  const { currentEntityId } = useSubEntry();
-  const mockSalesData = getSalesByEntity(currentEntityId);
-  const mockTopMedicines = getTopMedicinesByEntity(currentEntityId);
-  const mockDoctorPrescriptions = getDoctorPrescriptionsByEntity(currentEntityId);
   const totalRevenue = mockRevenueData.reduce((sum, item) => sum + item.revenue, 0);
   const totalProfit = mockRevenueData.reduce((sum, item) => sum + item.profit, 0);
   const profitMargin = ((totalProfit / totalRevenue) * 100).toFixed(1);
