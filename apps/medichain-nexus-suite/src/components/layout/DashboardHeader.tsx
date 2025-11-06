@@ -1,4 +1,4 @@
-import { Bell, Search, LogOut, Settings, UserCircle, ChevronDown } from "lucide-react";
+import { Bell, Search, User, ChevronDown } from "lucide-react";
 import { Button } from "@admin/components/ui/button";
 import { Input } from "@admin/components/ui/input";
 import {
@@ -11,37 +11,8 @@ import {
 } from "@admin/components/ui/dropdown-menu";
 import { Badge } from "@admin/components/ui/badge";
 import { SidebarTrigger } from "@admin/components/ui/sidebar";
-import { useAuth } from "../../../../src/contexts/AuthContext";
-import { useSubEntry } from "../../../../src/contexts/SubEntryContext";
-import { useNavigate } from "react-router-dom";
 
 export const DashboardHeader = () => {
-  const { user, logout, activeRole } = useAuth();
-  const { currentEntity } = useSubEntry();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate("/onboard/login", { replace: true });
-  };
-
-  const handleProfile = () => {
-    navigate("/dashboard/admin/settings");
-  };
-
-  const handleSettings = () => {
-    navigate("/dashboard/admin/settings");
-  };
-
-  if (!user) return null;
-
-  const userInitials = user.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
   return (
     <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 sticky top-0 z-10">
       <div className="flex items-center gap-4 flex-1">
@@ -68,46 +39,24 @@ export const DashboardHeader = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2">
-              <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-white text-xs font-medium">
-                {userInitials}
+              <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center">
+                <User className="h-4 w-4 text-white" />
               </div>
               <div className="text-left hidden md:block">
-                <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-muted-foreground">Administrator</p>
+                <p className="text-sm font-medium">Admin User</p>
+                <p className="text-xs text-muted-foreground">Super Admin</p>
               </div>
               <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
-                <p className="text-xs text-muted-foreground">Administrator</p>
-              </div>
-            </DropdownMenuLabel>
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleProfile}>
-              <UserCircle className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleSettings}>
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </DropdownMenuItem>
-            {currentEntity && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  {currentEntity.name}
-                </DropdownMenuLabel>
-              </>
-            )}
+            <DropdownMenuItem>Profile</DropdownMenuItem>
+            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem>Team</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              Log out
-            </DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive">Log out</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
