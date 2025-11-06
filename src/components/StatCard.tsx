@@ -25,11 +25,18 @@ export function StatCard({ title, value, icon: Icon, trend, variant = "default" 
     <Card className="transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className={cn("rounded-lg p-2 transition-transform duration-200 hover:scale-110", variantClasses[variant])} 
-             role="img" 
-             aria-label={`${title} icon`}>
-          <Icon className="h-4 w-4" />
-        </div>
+        {Icon ? (
+          <div
+            className={cn(
+              "rounded-lg p-2 transition-transform duration-200 hover:scale-110",
+              variantClasses[variant]
+            )}
+            role="img"
+            aria-label={`${title} icon`}
+          >
+            <Icon className="h-4 w-4" />
+          </div>
+        ) : null}
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold transition-colors duration-200">{value}</div>

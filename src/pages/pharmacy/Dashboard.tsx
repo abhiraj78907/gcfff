@@ -3,6 +3,9 @@ import { StatCard } from "@/components/StatCard";
 import { getSalesByEntity, getTopMedicinesByEntity, getDoctorPrescriptionsByEntity } from "@/lib/mockData";
 import { useSubEntry } from "@/contexts/SubEntryContext";
 import { DollarSign, Pill, UserCheck } from "lucide-react";
+import { SalesTrendChart } from "@/components/pharmacy/SalesTrendChart";
+import { PrescriptionsBar } from "@/components/pharmacy/PrescriptionsBar";
+import { TopMedicinesPie } from "@/components/pharmacy/TopMedicinesPie";
 
 const PharmacyDashboard = () => {
   const { currentEntityId } = useSubEntry();
@@ -30,29 +33,23 @@ const PharmacyDashboard = () => {
           icon={UserCheck}
         />
       </div>
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-        <Card className="p-4">
-          <h2 className="font-semibold mb-2">Top Medicines</h2>
-          <ul className="text-sm space-y-1">
-            {topMeds.slice(0, 6).map((m) => (
-              <li key={m.name} className="flex justify-between">
-                <span>{m.name}</span>
-                <span className="text-muted-foreground">{m.sold}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card className="p-4">
-          <h2 className="font-semibold mb-2">Doctor Prescriptions</h2>
-          <ul className="text-sm space-y-1">
-            {doctorRx.map((d) => (
-              <li key={d.doctor} className="flex justify-between">
-                <span>{d.doctor}</span>
-                <span className="text-muted-foreground">{d.prescriptions}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <SalesTrendChart
+            data={sales.map((d) => ({ label: d.date, value: d.sales }))}
+            title="Weekly Sales"
+          />
+        </div>
+        <TopMedicinesPie
+          data={topMeds.slice(0, 6).map((m) => ({ label: m.name, value: m.sold }))}
+          title="Top Medicines"
+        />
+      </div>
+      <div className="grid gap-4 grid-cols-1">
+        <PrescriptionsBar
+          data={doctorRx.map((d) => ({ label: d.doctor, value: d.prescriptions }))}
+          title="Prescriptions by Doctor"
+        />
       </div>
     </div>
   );
