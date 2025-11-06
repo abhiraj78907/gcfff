@@ -5,9 +5,9 @@ import { TimelineSection } from "@patient/components/TimelineSection";
 import { VoiceButton } from "@patient/components/VoiceButton";
 import { HelpButton } from "@patient/components/HelpButton";
 import { QuickActionButton } from "@patient/components/QuickActionButton";
-import { Button } from "@/components/ui/button";
+import { Button } from "@patient/components/ui/button";
 import { Settings } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@patient/hooks/use-toast";
 import { useVoiceControl } from "@patient/hooks/useVoiceControl";
 import medicineTablet from "@patient/assets/medicine-tablet.png";
 import medicineCapsule from "@patient/assets/medicine-capsule.png";
@@ -124,78 +124,116 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 md:px-8 py-4 md:py-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Medicine Tracker</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Medicine Tracker</h1>
             <p className="text-sm text-muted-foreground">Stay on track with your health</p>
           </div>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="md:hidden">
             <Settings className="w-5 h-5" />
           </Button>
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-8">
-        {/* Progress Ring */}
-        <div className="flex flex-col items-center gap-4">
-          <ProgressRing progress={calculateProgress()} size={140} />
-          <p className="text-lg font-medium text-foreground">
-            आज {medicines.filter(m => m.status === "taken").length} में से {medicines.length} दवाइयां ली
-          </p>
-        </div>
+      {/* Desktop Grid Layout */}
+      <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+          {/* Left Column - Progress & Quick Actions */}
+          <div className="lg:col-span-4 space-y-6">
+            {/* Progress Ring Card */}
+            <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+              <div className="flex flex-col items-center gap-4">
+                <ProgressRing progress={calculateProgress()} size={160} />
+                <div className="text-center">
+                  <p className="text-base md:text-lg font-medium text-foreground">
+                    आज {medicines.filter(m => m.status === "taken").length} में से {medicines.length} दवाइयां ली
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {Math.round(calculateProgress())}% पूर्ण
+                  </p>
+                </div>
+              </div>
+            </div>
 
-        {/* Quick Action Button */}
-        <QuickActionButton 
-          onMarkAllTaken={handleMarkAllTaken}
-          dueCount={dueMedicines.length}
-        />
+            {/* Quick Action Card */}
+            <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+              <h3 className="text-base md:text-lg font-semibold text-foreground mb-4">Quick Actions</h3>
+              <QuickActionButton 
+                onMarkAllTaken={handleMarkAllTaken}
+                dueCount={dueMedicines.length}
+              />
+            </div>
 
-        {/* Timeline Sections */}
-        <div className="space-y-6">
-          {/* Morning */}
-          {getMedicinesByPeriod("morning").length > 0 && (
-            <TimelineSection title="Morning" icon="🌅">
-              {getMedicinesByPeriod("morning").map(medicine => (
-                <MedicineCard
-                  key={medicine.id}
-                  {...medicine}
-                  onMarkTaken={() => handleMarkTaken(medicine.id)}
-                  onSnooze={() => handleSnooze(medicine.id)}
-                />
-              ))}
-            </TimelineSection>
-          )}
+            {/* Stats Cards */}
+            <div className="hidden lg:grid grid-cols-2 gap-4">
+              <div className="bg-success/10 border border-success/20 rounded-lg p-4">
+                <p className="text-sm text-success-foreground/70">Taken</p>
+                <p className="text-2xl font-bold text-success">
+                  {medicines.filter(m => m.status === "taken").length}
+                </p>
+              </div>
+              <div className="bg-due/10 border border-due/20 rounded-lg p-4">
+                <p className="text-sm text-due-foreground/70">Due</p>
+                <p className="text-2xl font-bold text-due-foreground">
+                  {dueMedicines.length}
+                </p>
+              </div>
+            </div>
+          </div>
 
-          {/* Afternoon */}
-          {getMedicinesByPeriod("afternoon").length > 0 && (
-            <TimelineSection title="Afternoon" icon="☀️">
-              {getMedicinesByPeriod("afternoon").map(medicine => (
-                <MedicineCard
-                  key={medicine.id}
-                  {...medicine}
-                  onMarkTaken={() => handleMarkTaken(medicine.id)}
-                  onSnooze={() => handleSnooze(medicine.id)}
-                />
-              ))}
-            </TimelineSection>
-          )}
+          {/* Right Column - Timeline */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Morning */}
+            {getMedicinesByPeriod("morning").length > 0 && (
+              <TimelineSection title="Morning" icon="🌅">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  {getMedicinesByPeriod("morning").map(medicine => (
+                    <MedicineCard
+                      key={medicine.id}
+                      {...medicine}
+                      onMarkTaken={() => handleMarkTaken(medicine.id)}
+                      onSnooze={() => handleSnooze(medicine.id)}
+                    />
+                  ))}
+                </div>
+              </TimelineSection>
+            )}
 
-          {/* Night */}
-          {getMedicinesByPeriod("night").length > 0 && (
-            <TimelineSection title="Night" icon="🌙">
-              {getMedicinesByPeriod("night").map(medicine => (
-                <MedicineCard
-                  key={medicine.id}
-                  {...medicine}
-                  onMarkTaken={() => handleMarkTaken(medicine.id)}
-                  onSnooze={() => handleSnooze(medicine.id)}
-                />
-              ))}
-            </TimelineSection>
-          )}
+            {/* Afternoon */}
+            {getMedicinesByPeriod("afternoon").length > 0 && (
+              <TimelineSection title="Afternoon" icon="☀️">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  {getMedicinesByPeriod("afternoon").map(medicine => (
+                    <MedicineCard
+                      key={medicine.id}
+                      {...medicine}
+                      onMarkTaken={() => handleMarkTaken(medicine.id)}
+                      onSnooze={() => handleSnooze(medicine.id)}
+                    />
+                  ))}
+                </div>
+              </TimelineSection>
+            )}
+
+            {/* Night */}
+            {getMedicinesByPeriod("night").length > 0 && (
+              <TimelineSection title="Night" icon="🌙">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  {getMedicinesByPeriod("night").map(medicine => (
+                    <MedicineCard
+                      key={medicine.id}
+                      {...medicine}
+                      onMarkTaken={() => handleMarkTaken(medicine.id)}
+                      onSnooze={() => handleSnooze(medicine.id)}
+                    />
+                  ))}
+                </div>
+              </TimelineSection>
+            )}
+          </div>
         </div>
       </div>
 

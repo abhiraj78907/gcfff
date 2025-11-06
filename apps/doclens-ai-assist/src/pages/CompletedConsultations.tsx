@@ -1,4 +1,4 @@
-import { Search, Download, Share2, RotateCcw, Filter } from "lucide-react";
+import { Search, Download, RotateCcw, Filter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@doctor/components/ui/card";
 import { Button } from "@doctor/components/ui/button";
 import { Input } from "@doctor/components/ui/input";
@@ -55,17 +55,13 @@ export default function CompletedConsultations() {
     navigate("/consultation");
   };
 
-  const handleShare = (patientName: string) => {
-    toast.success(`Prescription sent to ${patientName}`);
-  };
-
   const handleDownload = (patientName: string) => {
     toast.success(`Downloading prescription for ${patientName}`);
   };
 
-  const handleExport = () => {
-    toast.success("Exporting consultations report");
-  };
+  const handleExportCsv = () => toast.success("Exporting CSV");
+  const handleExportXls = () => toast.success("Exporting Excel");
+  const handleExportPdf = () => toast.success("Exporting PDF");
   return (
     <div className="space-y-6">
       <div>
@@ -135,10 +131,17 @@ export default function CompletedConsultations() {
               <Button variant="outline" size="icon">
                 <Filter className="h-4 w-4" />
               </Button>
-              <Button variant="outline" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
+              <div className="relative">
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+                <div className="absolute right-0 mt-2 w-36 rounded-md border bg-popover shadow-sm p-1 text-sm">
+                  <button className="w-full text-left px-2 py-1 rounded hover:bg-accent" onClick={handleExportCsv}>CSV</button>
+                  <button className="w-full text-left px-2 py-1 rounded hover:bg-accent" onClick={handleExportXls}>Excel</button>
+                  <button className="w-full text-left px-2 py-1 rounded hover:bg-accent" onClick={handleExportPdf}>PDF</button>
+                </div>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -198,13 +201,6 @@ export default function CompletedConsultations() {
                       >
                         <RotateCcw className="h-4 w-4 mr-2" />
                         Reopen
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleShare(consultation.name)}
-                      >
-                        <Share2 className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="ghost" 

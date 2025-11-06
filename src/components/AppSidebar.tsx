@@ -34,8 +34,8 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSubEntry } from "@/contexts/SubEntryContext";
+import { useAuth } from "../contexts/AuthContext";
+import { useSubEntry } from "../contexts/SubEntryContext";
 
 // Removed universal menu; all items are role-scoped below
 

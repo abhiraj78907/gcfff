@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Download, Trash2, Edit, Calendar } from "lucide-react";
-import { getMedicinesByEntity } from "@/lib/mockData";
-import { useSubEntry } from "@/contexts/SubEntryContext";
-import { StatCard } from "@/components/StatCard";
+import { getMedicinesByEntity } from "../lib/mockData";
+import { useSubEntry } from "../contexts/SubEntryContext";
+import { StatCard } from "../components/StatCard";
 import { Package, AlertTriangle, TrendingUp } from "lucide-react";
 
 export default function Inventory() {

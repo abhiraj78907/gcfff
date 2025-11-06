@@ -10,15 +10,15 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [react()],
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@patient": path.resolve(__dirname, "./apps/health-buddy-vibe/src"),
-      "@seva": path.resolve(__dirname, "./apps/seva-gate-dash/src"),
-      "@admin": path.resolve(__dirname, "./apps/medichain-nexus-suite/src"),
-      "@welcome": path.resolve(__dirname, "./apps/medichain-sparkle-onboard/src"),
-      "@gate": path.resolve(__dirname, "./apps/health-chain-gate/src"),
-      "@doctor": path.resolve(__dirname, "./apps/doclens-ai-assist/src"),
-      "@shared": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      { find: "@patient", replacement: path.resolve(__dirname, "./apps/health-buddy-vibe/src") },
+      { find: "@seva", replacement: path.resolve(__dirname, "./apps/seva-gate-dash/src") },
+      { find: "@admin", replacement: path.resolve(__dirname, "./apps/medichain-nexus-suite/src") },
+      { find: "@welcome", replacement: path.resolve(__dirname, "./apps/medichain-sparkle-onboard/src") },
+      { find: "@gate", replacement: path.resolve(__dirname, "./apps/health-chain-gate/src") },
+      { find: "@doctor", replacement: path.resolve(__dirname, "./apps/doclens-ai-assist/src") },
+      { find: "@shared", replacement: path.resolve(__dirname, "./src") },
+    ],
   },
 }));

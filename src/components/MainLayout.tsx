@@ -1,14 +1,14 @@
 import { Outlet } from "react-router-dom";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider } from "./ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { SubEntryProvider } from "@/contexts/SubEntryContext";
+import { SidebarTrigger } from "./ui/sidebar";
+import { SubEntryProvider } from "../contexts/SubEntryContext";
 import { SubEntrySwitcher } from "./SubEntrySwitcher";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { UserProfileDropdown } from "./UserProfileDropdown";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import { useLocation } from "react-router-dom";
-import { useSubEntry } from "@/contexts/SubEntryContext";
+import { useSubEntry } from "../contexts/SubEntryContext";
 
 export const MainLayout = () => {
   const { user } = useAuth();

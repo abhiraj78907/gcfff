@@ -1,12 +1,12 @@
-import { StatCard } from "@/components/StatCard";
+import { StatCard } from "../../components/StatCard";
 import { TestTube, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { useSubEntry } from "@/contexts/SubEntryContext";
-import { getLabWeeklyByEntity, getLabRecentUrgentByEntity } from "@/lib/mockData";
+import { useSubEntry } from "../../contexts/SubEntryContext";
+import { getLabWeeklyByEntity, getLabRecentUrgentByEntity } from "../../lib/mockData";
 
 export default function LabDashboard() {
   const navigate = useNavigate();

@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@patient/components/ui/button";
+import { Card } from "@patient/components/ui/card";
+import { Badge } from "@patient/components/ui/badge";
 import { Check, Clock, AlertCircle, Utensils } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@patient/lib/utils";
 
 export type MedicineStatus = "taken" | "due" | "missed";
 
@@ -56,13 +56,13 @@ export const MedicineCard = ({
 
   return (
     <Card className={cn(
-      "p-4 transition-all duration-300 animate-slide-up",
+      "p-4 md:p-5 transition-all duration-300 animate-slide-up",
       'pulse' in config && config.pulse && "animate-pulse-slow"
     )}>
-      <div className="flex gap-4">
+      <div className="flex gap-3 md:gap-4">
         {/* Medicine Image */}
         <div className="flex-shrink-0">
-          <div className="w-24 h-24 rounded-lg overflow-hidden bg-muted">
+          <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-muted">
             <img
               src={imageUrl}
               alt={name}
@@ -75,7 +75,7 @@ export const MedicineCard = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div>
-              <h3 className="font-semibold text-lg text-foreground">{name}</h3>
+              <h3 className="font-semibold text-base text-foreground">{name}</h3>
               <p className="text-sm text-muted-foreground">{dosage}</p>
             </div>
             <Badge className={config.color}>
@@ -85,7 +85,7 @@ export const MedicineCard = ({
           </div>
 
           <div className="space-y-1 mb-3">
-            <p className="text-sm text-foreground">{instructions}</p>
+            <p className="text-xs md:text-sm text-foreground">{instructions}</p>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />

@@ -1,10 +1,10 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "./components/ui/toaster";
+import { Toaster as Sonner } from "./components/ui/sonner";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { MainLayout } from "@/components/MainLayout";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { MainLayout } from "./components/MainLayout";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import Dashboard from "./pages/Dashboard";
 import Prescriptions from "./pages/Prescriptions";
 import Inventory from "./pages/Inventory";
@@ -20,10 +20,10 @@ import { AdminLayout, AdminDashboard, AdminAnalytics, AdminUsers, AdminSettings,
 import Welcome from "./pages/welcome";
 import { RegisterEntity, RegisterUser, Login as GateLogin, EntitySuccess } from "./pages/onboard";
 import { DoctorDashboard, DoctorActiveConsultation, DoctorCompletedConsultations, DoctorLabRequests, DoctorPatientHistory, DoctorSettings } from "./pages/doctor";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { RoleRoute } from "@/components/RoleRoute";
+import { AuthProvider } from "./contexts/AuthContext";
+import { RoleRoute } from "./components/RoleRoute";
 import PharmacistRoutes from "./pages/pharmacy";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 

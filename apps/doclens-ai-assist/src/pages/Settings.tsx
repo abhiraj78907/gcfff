@@ -1,4 +1,4 @@
-import { Bell, Globe, Moon, Clock, FileSignature } from "lucide-react";
+import { Bell, Globe, Moon, FileSignature, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@doctor/components/ui/card";
 import { Button } from "@doctor/components/ui/button";
 import { Label } from "@doctor/components/ui/label";
@@ -180,6 +180,17 @@ export default function Settings() {
               Manage Signature
             </Button>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="template-upload">Upload Prescription Template (PDF/DOCX)</Label>
+            <div className="flex items-center gap-2">
+              <input id="template-upload" type="file" accept=".pdf,.doc,.docx" className="text-sm" />
+              <Button variant="outline" size="sm">
+                <Upload className="h-4 w-4 mr-2" />
+                Upload
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -208,24 +219,6 @@ export default function Settings() {
                 <Label htmlFor="dark" className="font-normal">Dark</Label>
               </div>
             </RadioGroup>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Auto-logout Timer
-            </Label>
-            <Select defaultValue="15">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5">5 minutes</SelectItem>
-                <SelectItem value="15">15 minutes</SelectItem>
-                <SelectItem value="30">30 minutes</SelectItem>
-                <SelectItem value="60">1 hour</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>

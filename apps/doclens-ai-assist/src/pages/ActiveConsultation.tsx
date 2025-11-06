@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Mic, MicOff, Loader2, Plus, Trash2, Edit } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@doctor/components/ui/card";
 import { Button } from "@doctor/components/ui/button";
@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@doctor/components/ui/radio-group";
 
 export default function ActiveConsultation() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [medicines, setMedicines] = useState([
@@ -84,25 +85,20 @@ export default function ActiveConsultation() {
     }, 1500);
   };
 
-  const patient = {
+  const routePatient = (location.state as any)?.patient;
+  const patient = routePatient ?? {
     name: "Ramesh Kumar",
     age: "45M",
     id: "VIMS-2025-12345",
     contact: "+91 9876543210",
     registered: "9:45 AM",
-    symptoms: ["Fever since 2 days", "Headache", "Body pain"],
     pastVisits: [
       { date: "15 Oct 2025", diagnosis: "Viral Fever", medicines: "Paracetamol" },
       { date: "2 Sept 2025", diagnosis: "Stomach pain", medicines: "Antacid" },
     ],
   };
 
-  const transcript = [
-    { time: "9:15", speaker: "Doctor", text: "What problem?" },
-    { time: "9:15", speaker: "Patient", text: "Fever 2 days, headache, body pain" },
-    { time: "9:16", speaker: "Doctor", text: "Any vomiting?" },
-    { time: "9:16", speaker: "Patient", text: "No, only fever" },
-  ];
+  const [baseProblem, setBaseProblem] = useState("");
 
   return (
     <div className="min-h-[100svh] flex flex-col">
@@ -144,17 +140,14 @@ export default function ActiveConsultation() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Today's Symptoms</CardTitle>
+              <CardTitle className="text-base">Base Problem</CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-1 text-sm">
-                {patient.symptoms.map((symptom, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-primary mt-1">•</span>
-                    <span>{symptom}</span>
-                  </li>
-                ))}
-              </ul>
+              <Textarea
+                placeholder="Enter the patient's base problem in one line"
+                value={baseProblem}
+                onChange={(e) => setBaseProblem(e.target.value)}
+              />
             </CardContent>
           </Card>
 
@@ -179,54 +172,27 @@ export default function ActiveConsultation() {
 
         {/* Right Panel - AI Interface (60%) */}
         <div className="lg:col-span-3 space-y-4 lg:overflow-y-auto min-h-0">
-          {/* AI Recording Section */}
+          {/* AI Section simplified */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Live AI Assistant</CardTitle>
+              <CardTitle className="text-base">AI Assistant</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex flex-col items-center justify-center py-6">
+              <div className="flex flex-col items-center justify-center py-4">
                 <Button
                   size="lg"
                   onClick={isRecording ? handleStopRecording : handleStartRecording}
-                  className={`h-32 w-32 rounded-full ${
+                  className={`h-20 px-6 rounded-full ${
                     isRecording
                       ? "bg-critical hover:bg-critical/90 animate-pulse"
                       : "bg-success hover:bg-success/90"
                   }`}
                 >
-                  {isRecording ? (
-                    <MicOff className="h-12 w-12" />
-                  ) : (
-                    <Mic className="h-12 w-12" />
-                  )}
+                  {isRecording ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
                 </Button>
-                <p className="mt-4 text-sm font-medium">
+                <p className="mt-3 text-sm font-medium">
                   {isRecording ? `Recording: ${Math.floor(recordingTime / 60)}:${String(recordingTime % 60).padStart(2, '0')}` : "Ready to listen"}
                 </p>
-                <Badge variant="secondary" className="mt-2">
-                  Patient consent recorded
-                </Badge>
-              </div>
-
-              {/* Live Transcript */}
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Live Transcript</Label>
-                <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3 bg-muted/30">
-                  {transcript.map((entry, i) => (
-                    <div
-                      key={i}
-                      className={`p-2 rounded text-sm ${
-                        entry.speaker === "Doctor"
-                          ? "bg-accent text-accent-foreground"
-                          : "bg-success-light"
-                      }`}
-                    >
-                      <span className="font-medium text-xs">{entry.time} {entry.speaker}:</span>
-                      <p className="mt-1">{entry.text}</p>
-                    </div>
-                  ))}
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -239,29 +205,20 @@ export default function ActiveConsultation() {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="symptoms">
-                  Symptoms <Badge variant="secondary" className="ml-2 text-xs">AI filled</Badge>
+                  Symptoms <Badge variant="secondary" className="ml-2 text-xs">AI generated</Badge>
                 </Label>
                 <Textarea
                   id="symptoms"
-                  defaultValue="Fever since 2 days, headache, body pain"
+                  placeholder="AI will populate, you can edit freely"
                   className="mt-1.5"
                 />
               </div>
 
               <div>
                 <Label htmlFor="diagnosis">
-                  Diagnosis <Badge variant="secondary" className="ml-2 text-xs">AI suggested</Badge>
+                  Diagnosis <Badge variant="secondary" className="ml-2 text-xs">AI generated</Badge>
                 </Label>
-                <Select defaultValue="viral-fever">
-                  <SelectTrigger className="mt-1.5">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="viral-fever">Viral Fever</SelectItem>
-                    <SelectItem value="bacterial-infection">Bacterial Infection</SelectItem>
-                    <SelectItem value="flu">Flu</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Textarea id="diagnosis" placeholder="AI will suggest here; edit as needed" className="mt-1.5" />
               </div>
 
               <div>
@@ -288,21 +245,14 @@ export default function ActiveConsultation() {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="medicine-search">Search Medicine</Label>
-                <Input
-                  id="medicine-search"
-                  placeholder="Search by name or symptom..."
-                  className="mt-1.5"
-                />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant="outline" className="cursor-pointer hover:bg-accent">
-                    Paracetamol
-                  </Badge>
-                  <Badge variant="outline" className="cursor-pointer hover:bg-accent">
-                    Crocin
-                  </Badge>
-                  <Badge variant="outline" className="cursor-pointer hover:bg-accent">
-                    Dolo 650
-                  </Badge>
+                <Input id="medicine-search" placeholder="Type to search, select multiple" className="mt-1.5" />
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 text-sm">
+                  {['Paracetamol', 'Dolo 650', 'Azithromycin', 'Cetirizine', 'Metformin', 'Pantoprazole'].map((name) => (
+                    <label key={name} className="flex items-center gap-2 rounded border p-2 cursor-pointer hover:bg-accent">
+                      <Checkbox />
+                      <span>{name}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
@@ -401,6 +351,9 @@ export default function ActiveConsultation() {
                 </Button>
                 <Button className="flex-1" onClick={handleSaveAndSign}>
                   Save & Sign
+                </Button>
+                <Button variant="secondary" className="flex-1" onClick={() => navigate('/lab-requests')}>
+                  Order Lab Test
                 </Button>
               </div>
             </CardContent>

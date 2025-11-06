@@ -8,9 +8,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useSubEntry } from "@/contexts/SubEntryContext";
+import { useSubEntry } from "../contexts/SubEntryContext";
 
 interface UserProfileDropdownProps {
   variant?: "default" | "icon-only" | "compact";

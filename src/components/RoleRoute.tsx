@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import type { UserRole } from "@/types/entities";
 
 export const RoleRoute = ({ role, children }: { role: UserRole; children: JSX.Element }) => {

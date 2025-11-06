@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, TrendingUp, DollarSign, Users } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { getSalesByEntity, getTopMedicinesByEntity, getDoctorPrescriptionsByEntity, mockRevenueData } from "@/lib/mockData";
-import { useSubEntry } from "@/contexts/SubEntryContext";
+import { getSalesByEntity, getTopMedicinesByEntity, getDoctorPrescriptionsByEntity, mockRevenueData } from "../../lib/mockData";
+import { useSubEntry } from "../../contexts/SubEntryContext";
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 

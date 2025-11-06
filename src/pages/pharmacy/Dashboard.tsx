@@ -1,10 +1,10 @@
-import { StatCard } from "@/components/StatCard";
+import { StatCard } from "../../components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, DollarSign, Package, AlertTriangle, TrendingUp } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { getSalesByEntity, getTopMedicinesByEntity, getPrescriptionsByEntity, getMedicinesByEntity } from "@/lib/mockData";
-import { useSubEntry } from "@/contexts/SubEntryContext";
+import { getSalesByEntity, getTopMedicinesByEntity, getPrescriptionsByEntity, getMedicinesByEntity } from "../../lib/mockData";
+import { useSubEntry } from "../../contexts/SubEntryContext";
 
 export default function Dashboard() {
   const { currentEntityId } = useSubEntry();

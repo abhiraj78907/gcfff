@@ -1,4 +1,4 @@
-import { StatCard } from "@/components/StatCard";
+import { StatCard } from "../components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, DollarSign, Package, AlertTriangle, TrendingUp } from "lucide-react";

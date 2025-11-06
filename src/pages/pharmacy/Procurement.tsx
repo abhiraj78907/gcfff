@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Phone, Star, Clock, Package, TrendingUp, ShoppingCart } from "lucide-react";
-import { mockSuppliers, mockOrders, getMedicinesByEntity } from "@/lib/mockData";
-import { useSubEntry } from "@/contexts/SubEntryContext";
+import { mockSuppliers, mockOrders, getMedicinesByEntity } from "../../lib/mockData";
+import { useSubEntry } from "../../contexts/SubEntryContext";
 
 export default function Procurement() {
   const { currentEntityId } = useSubEntry();

@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@patient/components/ui/button";
 import { Phone, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import {
@@ -10,7 +10,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@patient/components/ui/alert-dialog";
 
 export const HelpButton = () => {
   const [showDialog, setShowDialog] = useState(false);

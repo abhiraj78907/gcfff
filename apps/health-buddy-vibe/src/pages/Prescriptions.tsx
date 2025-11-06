@@ -1,8 +1,8 @@
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@patient/components/ui/card";
+import { Button } from "@patient/components/ui/button";
+import { Badge } from "@patient/components/ui/badge";
 import { Download, Share2, Eye, Calendar, User, Building2 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@patient/components/ui/separator";
 
 interface Prescription {
   id: string;
@@ -121,41 +121,46 @@ const Prescriptions = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <header className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-foreground">Prescriptions</h1>
+        <div className="container mx-auto px-4 md:px-8 py-4 md:py-6">
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">Prescriptions</h1>
           <p className="text-sm text-muted-foreground">View and manage your prescriptions</p>
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-8">
-        {/* Current Prescriptions */}
-        {currentPrescriptions.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Current Prescriptions</h2>
-            {currentPrescriptions.map(prescription => (
-              <PrescriptionCard key={prescription.id} prescription={prescription} />
-            ))}
-          </div>
-        )}
+      <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+          {/* Current Prescriptions */}
+          {currentPrescriptions.length > 0 && (
+            <div className="space-y-4 lg:col-span-2">
+              <h2 className="text-base md:text-lg font-semibold text-foreground">Current Prescriptions</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {currentPrescriptions.map(prescription => (
+                  <PrescriptionCard key={prescription.id} prescription={prescription} />
+                ))}
+              </div>
+            </div>
+          )}
 
-        {/* Past Prescriptions */}
-        {pastPrescriptions.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Past Prescriptions</h2>
-            {pastPrescriptions.map(prescription => (
-              <PrescriptionCard key={prescription.id} prescription={prescription} />
-            ))}
-          </div>
-        )}
+          {/* Past Prescriptions */}
+          {pastPrescriptions.length > 0 && (
+            <div className="space-y-4 lg:col-span-2">
+              <h2 className="text-base md:text-lg font-semibold text-foreground">Past Prescriptions</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {pastPrescriptions.map(prescription => (
+                  <PrescriptionCard key={prescription.id} prescription={prescription} />
+                ))}
+              </div>
+            </div>
+          )}
 
-        {prescriptions.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No prescriptions available</p>
-          </div>
-        )}
+          {prescriptions.length === 0 && (
+            <div className="lg:col-span-2 text-center py-12">
+              <p className="text-muted-foreground">No prescriptions available</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

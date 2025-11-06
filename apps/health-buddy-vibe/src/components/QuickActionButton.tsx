@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@patient/components/ui/button";
 import { Check } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@patient/components/ui/card";
 
 interface QuickActionButtonProps {
   onMarkAllTaken: () => void;

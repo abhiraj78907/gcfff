@@ -3,19 +3,19 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@patient/lib/utils";
 
 const navItems = [
-  { icon: Home, label: "Home", path: "/patient" },
-  { icon: Pill, label: "Medicines", path: "/patient/medicines" },
-  { icon: FileText, label: "Prescriptions", path: "/patient/prescriptions" },
-  { icon: Calendar, label: "Appointments", path: "/patient/appointments" },
-  { icon: Settings, label: "Settings", path: "/patient/settings" },
+  { icon: Home, label: "Home", path: "/" },
+  { icon: Pill, label: "Medicines", path: "/medicines" },
+  { icon: FileText, label: "Prescriptions", path: "/prescriptions" },
+  { icon: Calendar, label: "Appointments", path: "/appointments" },
+  { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
 export const BottomNav = () => {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 border-t border-border z-50 pb-[env(safe-area-inset-bottom)]">
-      <div className="flex items-center justify-around h-16 max-w-md mx-auto px-2">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
+      <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;

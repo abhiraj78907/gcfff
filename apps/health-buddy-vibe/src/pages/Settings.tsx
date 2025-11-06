@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Card } from "@patient/components/ui/card";
+import { Button } from "@patient/components/ui/button";
+import { Switch } from "@patient/components/ui/switch";
+import { Input } from "@patient/components/ui/input";
+import { Label } from "@patient/components/ui/label";
+import { Separator } from "@patient/components/ui/separator";
 import { 
   User, 
   Bell, 
@@ -17,8 +17,8 @@ import {
   Users,
   Phone
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@patient/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@patient/components/ui/select";
 
 const Settings = () => {
   const [notifications, setNotifications] = useState({
@@ -34,51 +34,51 @@ const Settings = () => {
   const [caregiverMode, setCaregiverMode] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <header className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-foreground">सेटिंग्स</h1>
+        <div className="container mx-auto px-4 md:px-8 py-4 md:py-6">
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">सेटिंग्स</h1>
           <p className="text-sm text-muted-foreground">अपनी प्राथमिकताएं प्रबंधित करें</p>
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* Personal Information */}
-        <Card className="p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <User className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">व्यक्तिगत जानकारी</h2>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">पूरा नाम</Label>
-              <div className="flex gap-2">
-                <Input id="name" defaultValue="रमेश कुमार" className="text-base" />
-                <Button variant="outline" size="icon">
-                  <Edit className="w-4 h-4" />
-                </Button>
-              </div>
+      <div className="container mx-auto px-4 md:px-8 py-6 md:py-8 max-w-4xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Personal Information */}
+          <Card className="p-5 md:col-span-2">
+            <div className="flex items-center gap-3 mb-4">
+              <User className="w-5 h-5 text-primary" />
+              <h2 className="text-base md:text-lg font-semibold text-foreground">व्यक्तिगत जानकारी</h2>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="phone">फोन नंबर</Label>
-              <div className="flex gap-2">
-                <Input id="phone" defaultValue="+91 9876543210" className="text-base" />
-                <Button variant="outline" size="icon">
-                  <Edit className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Card>
 
-        {/* Caregiver Mode */}
-        <Card className="p-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">पूरा नाम</Label>
+                <div className="flex gap-2">
+                  <Input id="name" defaultValue="रमेश कुमार" className="text-base" />
+                  <Button variant="outline" size="icon">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">फोन नंबर</Label>
+                <div className="flex gap-2">
+                  <Input id="phone" defaultValue="+91 9876543210" className="text-base" />
+                  <Button variant="outline" size="icon">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Caregiver Mode */}
+          <Card className="p-5 md:col-span-1">
           <div className="flex items-center gap-3 mb-4">
             <Users className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">देखभालकर्ता मोड</h2>
+            <h2 className="text-base md:text-lg font-semibold text-foreground">देखभालकर्ता मोड</h2>
           </div>
           
           <div className="space-y-4">
@@ -110,11 +110,11 @@ const Settings = () => {
           </div>
         </Card>
 
-        {/* Notifications */}
-        <Card className="p-5">
+          {/* Notifications */}
+          <Card className="p-5 md:col-span-1">
           <div className="flex items-center gap-3 mb-4">
             <Bell className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">सूचनाएं</h2>
+            <h2 className="text-base md:text-lg font-semibold text-foreground">सूचनाएं</h2>
           </div>
           
           <div className="space-y-4">
@@ -193,11 +193,11 @@ const Settings = () => {
           </div>
         </Card>
 
-        {/* Language */}
-        <Card className="p-5">
+          {/* Language */}
+          <Card className="p-5 md:col-span-1">
           <div className="flex items-center gap-3 mb-4">
             <Globe className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">भाषा</h2>
+            <h2 className="text-base md:text-lg font-semibold text-foreground">भाषा</h2>
           </div>
           
           <Select value={language} onValueChange={setLanguage}>
@@ -212,11 +212,11 @@ const Settings = () => {
           </Select>
         </Card>
 
-        {/* Backup & Sync */}
-        <Card className="p-5">
+          {/* Backup & Sync */}
+          <Card className="p-5 md:col-span-1">
           <div className="flex items-center gap-3 mb-4">
             <Cloud className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">बैकअप और सिंक</h2>
+            <h2 className="text-base md:text-lg font-semibold text-foreground">बैकअप और सिंक</h2>
           </div>
           
           <div className="space-y-4">
@@ -241,11 +241,11 @@ const Settings = () => {
           </div>
         </Card>
 
-        {/* Help & Support */}
-        <Card className="p-5">
+          {/* Help & Support */}
+          <Card className="p-5 md:col-span-2">
           <div className="flex items-center gap-3 mb-4">
             <HelpCircle className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">मदद और सहायता</h2>
+            <h2 className="text-base md:text-lg font-semibold text-foreground">मदद और सहायता</h2>
           </div>
           
           <div className="space-y-2">
@@ -261,7 +261,7 @@ const Settings = () => {
             <Separator className="my-4" />
             <Button 
               variant="default" 
-              className="w-full h-14 text-lg bg-success hover:bg-success/90"
+              className="w-full h-12 md:h-14 text-base md:text-lg bg-success hover:bg-success/90"
               onClick={() => window.location.href = 'tel:1800-000-0000'}
             >
               <Phone className="w-5 h-5 mr-2" />
@@ -271,10 +271,11 @@ const Settings = () => {
         </Card>
 
         {/* Logout */}
-        <Button variant="destructive" className="w-full h-12 text-base" size="lg">
+        <Button variant="destructive" className="md:col-span-2 w-full h-12 text-base" size="lg">
           <LogOut className="w-5 h-5 mr-2" />
           लॉग आउट
         </Button>
+      </div>
       </div>
     </div>
   );

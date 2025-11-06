@@ -1,8 +1,8 @@
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@patient/components/ui/card";
+import { Button } from "@patient/components/ui/button";
+import { Badge } from "@patient/components/ui/badge";
 import { Calendar, Clock, User, MapPin, Phone } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@patient/components/ui/separator";
 
 interface Appointment {
   id: string;
@@ -152,42 +152,47 @@ const Appointments = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <header className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-foreground">Appointments</h1>
+        <div className="container mx-auto px-4 md:px-8 py-4 md:py-6">
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">Appointments</h1>
           <p className="text-sm text-muted-foreground">Manage your doctor visits</p>
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-8">
-        {/* Upcoming Appointments */}
-        {upcomingAppointments.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Upcoming Appointments</h2>
-            {upcomingAppointments.map(appointment => (
-              <AppointmentCard key={appointment.id} appointment={appointment} />
-            ))}
-          </div>
-        )}
+      <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
+          {/* Upcoming Appointments */}
+          {upcomingAppointments.length > 0 && (
+            <div className="space-y-4 lg:col-span-2 xl:col-span-3">
+              <h2 className="text-base md:text-lg font-semibold text-foreground">Upcoming Appointments</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {upcomingAppointments.map(appointment => (
+                  <AppointmentCard key={appointment.id} appointment={appointment} />
+                ))}
+              </div>
+            </div>
+          )}
 
-        {/* Past Appointments */}
-        {pastAppointments.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Past Appointments</h2>
-            {pastAppointments.map(appointment => (
-              <AppointmentCard key={appointment.id} appointment={appointment} />
-            ))}
-          </div>
-        )}
+          {/* Past Appointments */}
+          {pastAppointments.length > 0 && (
+            <div className="space-y-4 lg:col-span-2 xl:col-span-3">
+              <h2 className="text-base md:text-lg font-semibold text-foreground">Past Appointments</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {pastAppointments.map(appointment => (
+                  <AppointmentCard key={appointment.id} appointment={appointment} />
+                ))}
+              </div>
+            </div>
+          )}
 
-        {appointments.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No appointments scheduled</p>
-            <Button className="mt-4">Book Appointment</Button>
-          </div>
-        )}
+          {appointments.length === 0 && (
+            <div className="lg:col-span-2 xl:col-span-3 text-center py-12">
+              <p className="text-muted-foreground">No appointments scheduled</p>
+              <Button className="mt-4">Book Appointment</Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -7,8 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Building2, Hospital, Pill, Stethoscope, Upload, ArrowLeft, CheckCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import { mockEntities } from "@/lib/mocks/entities";
+import { useToast } from "../../hooks/use-toast";
+import { mockEntities } from "../../lib/mocks/entities";
 
 type EntityType = "govt-hospital" | "private-hospital" | "clinic" | "pharmacy" | null;
 

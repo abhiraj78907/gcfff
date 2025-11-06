@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@patient/components/ui/button";
 import { Mic, MicOff } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@patient/lib/utils";
 
 interface VoiceButtonProps {
   isListening: boolean;

@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search, QrCode, User, Calendar, Building2, CheckCircle2, Printer } from "lucide-react";
-import { getPrescriptionsByEntity } from "@/lib/mockData";
-import { useSubEntry } from "@/contexts/SubEntryContext";
+import { getPrescriptionsByEntity } from "../../lib/mockData";
+import { useSubEntry } from "../../contexts/SubEntryContext";
 
 export default function Prescriptions() {
   const { currentEntityId } = useSubEntry();

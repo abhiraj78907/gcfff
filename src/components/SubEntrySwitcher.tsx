@@ -1,4 +1,4 @@
-import { useSubEntry } from "@/contexts/SubEntryContext";
+import { useSubEntry } from "../contexts/SubEntryContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const SubEntrySwitcher = () => {

@@ -2,7 +2,7 @@ import { Toaster } from "@doctor/components/ui/toaster";
 import { Toaster as Sonner } from "@doctor/components/ui/sonner";
 import { TooltipProvider } from "@doctor/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@doctor/components/ui/sidebar";
 import { DoctorSidebar } from "@doctor/components/DoctorSidebar";
 import { DoctorHeader } from "@doctor/components/DoctorHeader";
@@ -13,8 +13,16 @@ import LabRequests from "./pages/LabRequests";
 import PatientHistory from "./pages/PatientHistory";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import { useAuth } from "@shared/contexts/AuthContext";
 
 const queryClient = new QueryClient();
+
+const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -23,23 +31,33 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <SidebarProvider>
-          <div className="flex min-h-[100svh] w-full">
-            <DoctorSidebar />
-            <div className="flex flex-1 flex-col min-h-0">
-              <DoctorHeader />
-              <main className="flex-1 min-h-0 overflow-y-auto bg-background p-4 md:p-6">
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/consultation" element={<ActiveConsultation />} />
-                  <Route path="/completed" element={<CompletedConsultations />} />
-                  <Route path="/lab-requests" element={<LabRequests />} />
-                  <Route path="/patient-history" element={<PatientHistory />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-            </div>
-          </div>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedLayout>
+                  <div className="flex min-h-[100svh] w-full">
+                    <DoctorSidebar />
+                    <div className="flex flex-1 flex-col min-h-0">
+                      <DoctorHeader />
+                      <main className="flex-1 min-h-0 overflow-y-auto bg-background p-4 md:p-6">
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/consultation" element={<ActiveConsultation />} />
+                          <Route path="/completed" element={<CompletedConsultations />} />
+                          <Route path="/lab-requests" element={<LabRequests />} />
+                          <Route path="/patient-history" element={<PatientHistory />} />
+                          <Route path="/settings" element={<Settings />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </main>
+                    </div>
+                  </div>
+                </ProtectedLayout>
+              }
+            />
+          </Routes>
         </SidebarProvider>
       </BrowserRouter>
     </TooltipProvider>

@@ -4,6 +4,9 @@ import { Button } from "@doctor/components/ui/button";
 import { Input } from "@doctor/components/ui/input";
 import { Badge } from "@doctor/components/ui/badge";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@doctor/components/ui/dialog";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { useState } from "react";
 
 const patientHistory = [
   {
@@ -36,12 +39,19 @@ const patientHistory = [
 ];
 
 export default function PatientHistory() {
+  const [open, setOpen] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState<typeof patientHistory[0] | null>(null);
   const handleExportHistory = () => {
     toast.success("Exporting complete medical history for Ramesh Kumar");
   };
 
   const handleViewPrescription = (date: string) => {
     toast.info(`Viewing prescription from ${date}`);
+  };
+
+  const handleOpenDetails = (visit: typeof patientHistory[0]) => {
+    setSelectedVisit(visit);
+    setOpen(true);
   };
 
   const handleDownloadPDF = (date: string) => {
@@ -125,7 +135,7 @@ export default function PatientHistory() {
                   </CardHeader>
 
                   <CardContent className="space-y-3">
-                    <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="grid sm:grid-cols-2 gap-4 cursor-pointer" onClick={() => handleOpenDetails(visit)}>
                       <div>
                         <p className="text-sm font-medium text-foreground mb-1">Diagnosis</p>
                         <p className="text-sm text-muted-foreground">{visit.diagnosis}</p>
@@ -171,6 +181,67 @@ export default function PatientHistory() {
           </div>
         </div>
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Visit Details</DialogTitle>
+          </DialogHeader>
+          {selectedVisit && (
+            <div className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Date</p>
+                  <p className="font-medium">{selectedVisit.date}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Doctor</p>
+                  <p className="font-medium">{selectedVisit.doctor}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Department</p>
+                  <p className="font-medium">{selectedVisit.department}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm text-muted-foreground">Diagnosis</p>
+                <p className="font-medium">{selectedVisit.diagnosis}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Symptoms</p>
+                <p className="font-medium">{selectedVisit.symptoms}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Medicines</p>
+                <p className="font-medium">{selectedVisit.medicines}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium mb-2">Monthly Consultations</p>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[
+                      { month: "Jul", count: 8 },
+                      { month: "Aug", count: 10 },
+                      { month: "Sep", count: 9 },
+                      { month: "Oct", count: 12 },
+                      { month: "Nov", count: 14 },
+                      { month: "Dec", count: 15 },
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="month" className="text-xs" />
+                      <YAxis className="text-xs" />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
+                      <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
