@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Sidebar } from "./components/Sidebar";
+import { LabHeader } from "./components/LabHeader";
 import Dashboard from "./pages/Dashboard";
 import TestRequests from "./pages/TestRequests";
 import UploadResults from "./pages/UploadResults";
@@ -21,7 +22,9 @@ const App = () => (
       <BrowserRouter>
         <div className="flex min-h-screen w-full bg-background">
           <Sidebar />
-          <main className="flex-1 p-8 overflow-auto">
+          <div className="flex flex-1 flex-col min-h-0">
+            <LabHeader />
+            <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8">
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/requests" element={<TestRequests />} />
@@ -31,6 +34,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
+          </div>
         </div>
       </BrowserRouter>
     </TooltipProvider>

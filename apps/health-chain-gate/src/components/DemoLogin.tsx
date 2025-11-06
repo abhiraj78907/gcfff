@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -98,22 +97,6 @@ export function DemoLogin({ onAutofill }: Props) {
             </Select>
           </div>
         </div>
-        {!!selectedEntity && (
-          <div className="flex flex-wrap gap-2" aria-live="polite">
-            {(demoUsersByEntity[selectedEntity] || []).map((u, idx) => (
-              <Button
-                key={`${u.role}-${idx}`}
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedRole(u.role)}
-                aria-label={`Autofill ${entityName[selectedEntity] ?? selectedEntity} ${u.role}`}
-              >
-                {u.role}
-              </Button>
-            ))}
-          </div>
-        )}
       </div>
     </Card>
   );

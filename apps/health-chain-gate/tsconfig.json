@@ -5,7 +5,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@root/*": ["../../src/*"]
+      "@root/*": ["../../src/*"],
+      "@shared/*": ["../../src/*"]
     },
     "noImplicitAny": false,
     "noUnusedParameters": false,

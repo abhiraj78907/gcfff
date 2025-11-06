@@ -17,7 +17,8 @@ export default defineConfig(({ mode }) => ({
       "@admin": path.resolve(__dirname, "./apps/medichain-nexus-suite/src"),
       "@welcome": path.resolve(__dirname, "./apps/medichain-sparkle-onboard/src"),
       "@gate": path.resolve(__dirname, "./apps/health-chain-gate/src"),
-          "@doctor": path.resolve(__dirname, "./apps/doclens-ai-assist/src"),
+      "@doctor": path.resolve(__dirname, "./apps/doclens-ai-assist/src"),
+      "@shared": path.resolve(__dirname, "./src"),
     },
   },
 }));

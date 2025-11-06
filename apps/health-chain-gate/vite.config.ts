@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@root": path.resolve(__dirname, "../../src"),
+      "@shared": path.resolve(__dirname, "../../src"),
     },
   },
 }));

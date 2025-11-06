@@ -10,7 +10,8 @@
       "@admin/*": ["./apps/medichain-nexus-suite/src/*"],
       "@welcome/*": ["./apps/medichain-sparkle-onboard/src/*"],
       "@gate/*": ["./apps/health-chain-gate/src/*"],
-      "@doctor/*": ["./apps/doclens-ai-assist/src/*"]
+      "@doctor/*": ["./apps/doclens-ai-assist/src/*"],
+      "@shared/*": ["./src/*"]
     },
     "noImplicitAny": false,
     "noUnusedParameters": false,
