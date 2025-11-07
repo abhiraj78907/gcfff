@@ -47,6 +47,29 @@ import {
 } from "../components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 
+type ClinicalSummaryDraft = {
+  symptomsRegional: string[];
+  symptomsEnglish: string[];
+  summary: string;
+  likelyDiagnosis: string;
+  doctorNotes: string;
+};
+
+const mergeUnique = (current: string[], incoming: string[]) => {
+  const existing = new Set(current.map(item => item.trim().toLowerCase()));
+  const merged = [...current];
+  incoming.forEach(raw => {
+    const item = String(raw).trim();
+    if (!item) return;
+    const key = item.toLowerCase();
+    if (!existing.has(key)) {
+      merged.push(item);
+      existing.add(key);
+    }
+  });
+  return merged;
+};
+
 interface MedicineItem {
   id: string;
   name: string;
@@ -100,6 +123,15 @@ export default function ActiveConsultationAI() {
   const [isProcessingDiagnosis, setIsProcessingDiagnosis] = useState(false);
   const [diagnosisSuggestions, setDiagnosisSuggestions] = useState<DiagnosisSuggestion[]>([]);
   const [showDiagnosisSuggestions, setShowDiagnosisSuggestions] = useState(false);
+  const [clinicalSummary, setClinicalSummary] = useState<ClinicalSummaryDraft>({
+    symptomsRegional: [],
+    symptomsEnglish: [],
+    summary: "",
+    likelyDiagnosis: "",
+    doctorNotes: "",
+  });
+  const [showSummaryPreview, setShowSummaryPreview] = useState(false);
+  const summaryPreviewRef = useRef<HTMLDivElement | null>(null);
   
   // Form State
   const [saving, setSaving] = useState(false);
@@ -140,7 +172,60 @@ export default function ActiveConsultationAI() {
     return "standard";
   });
   const [customTemplateContent, setCustomTemplateContent] = useState<string>("");
+  const clinicName = currentEntity?.name || user?.clinicName || "Clinic";
   
+  const handleSummaryArrayChange = useCallback((field: "symptomsRegional" | "symptomsEnglish", value: string) => {
+    const items = value
+      .split(/\n|,/)
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+    setClinicalSummary((prev) => ({
+      ...prev,
+      [field]: items,
+    }));
+  }, []);
+
+  const handleSummaryTextChange = useCallback((field: "summary" | "likelyDiagnosis" | "doctorNotes", value: string) => {
+    setClinicalSummary((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  }, []);
+
+  const handlePrintSummary = useCallback(() => {
+    if (!summaryPreviewRef.current) {
+      toast.warning("Preview summary first", {
+        description: "Generate the preview before exporting",
+      });
+      return;
+    }
+
+    const doc = summaryPreviewRef.current;
+    const html = doc.innerHTML;
+    const printWindow = window.open("", "PRINT", "height=900,width=700");
+    if (!printWindow) {
+      toast.error("Unable to open print window");
+      return;
+    }
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Consultation Summary Draft</title>
+      <style>
+        body { font-family: 'Arial', sans-serif; padding: 24px; color: #1f2937; }
+        h1, h2, h3 { margin: 0 0 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; font-size: 13px; }
+        th { background: #f3f4f6; }
+        .section { margin-bottom: 18px; }
+        .disclaimer { margin-top: 24px; font-size: 12px; color: #b91c1c; font-weight: 600; }
+      </style>
+    </head><body>${html}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
+  }, [summaryPreviewRef]);
+
   // Load prescription template from Firestore user profile
   useEffect(() => {
     const loadTemplate = async () => {
@@ -409,6 +494,13 @@ export default function ActiveConsultationAI() {
           }
           return prev;
         });
+        setClinicalSummary((prev) => ({
+          ...prev,
+          likelyDiagnosis:
+            prev.likelyDiagnosis && prev.likelyDiagnosis.trim().length > 0
+              ? prev.likelyDiagnosis
+              : suggestions[0].diagnosis,
+        }));
         toast.success("Diagnosis suggested", {
           description: `${suggestions[0].diagnosis} (${(suggestions[0].confidence * 100).toFixed(0)}% confidence)`,
         });
@@ -509,6 +601,16 @@ export default function ActiveConsultationAI() {
           
           // Also update main symptoms field (for backward compatibility)
           setSymptoms(englishText);
+
+          setClinicalSummary((prev) => ({
+            ...prev,
+            symptomsEnglish: mergeUnique(prev.symptomsEnglish, validEnglishSymptoms),
+            symptomsRegional: mergeUnique(prev.symptomsRegional, validNativeSymptoms.length > 0 ? validNativeSymptoms : validEnglishSymptoms),
+            summary:
+              prev.summary && prev.summary.trim().length > 0
+                ? prev.summary
+                : `Patient reports ${validEnglishSymptoms.join(", ")}`,
+          }));
           
           toast.success("Symptoms extracted", {
             description: `${validEnglishSymptoms.length} symptoms found (${nativeText ? "with native language" : "English only"})`,
@@ -1732,17 +1834,24 @@ export default function ActiveConsultationAI() {
                     <Badge variant="secondary" className="text-xs">AI generated</Badge>
                   </div>
                 </div>
-                 <Textarea 
-                   id="diagnosis" 
-                   placeholder={isProcessingDiagnosis 
-                     ? "🤖 AI is analyzing symptoms and suggesting diagnosis..." 
-                     : symptoms 
-                     ? "💡 Click 'AI Suggest' for AI-powered diagnosis suggestions, or type manually" 
-                     : "💡 Enter symptoms first, then click 'AI Suggest' for AI-powered diagnosis recommendations"}
-                   className="mt-1.5"
-                   value={diagnosis}
-                   onChange={(e) => setDiagnosis(e.target.value)}
-                 />
+                <Textarea 
+                  id="diagnosis" 
+                  placeholder={isProcessingDiagnosis 
+                    ? "🤖 AI is analyzing symptoms and suggesting diagnosis..." 
+                    : symptoms 
+                    ? "💡 Click 'AI Suggest' for AI-powered diagnosis suggestions, or type manually" 
+                    : "💡 Enter symptoms first, then click 'AI Suggest' for AI-powered diagnosis recommendations"}
+                  className="mt-1.5"
+                  value={diagnosis}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setDiagnosis(value);
+                    setClinicalSummary((prev) => ({
+                      ...prev,
+                      likelyDiagnosis: value,
+                    }));
+                  }}
+                />
                 
                 {showDiagnosisSuggestions && diagnosisSuggestions.length > 0 && (
                   <div className="mt-2 space-y-2">
@@ -1790,6 +1899,92 @@ export default function ActiveConsultationAI() {
               </div>
             </CardContent>
           </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">AI Draft Summary (Doctor Review Required)</CardTitle>
+            <p className="text-xs text-red-600 mt-1">
+              Draft only — A licensed doctor must validate, edit, and sign before clinical use.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label htmlFor="symptoms-regional">Regional Expressions</Label>
+                <Textarea
+                  id="symptoms-regional"
+                  placeholder="ಒಳಗಳು ನೋವು\nज्वर\nవాంతులు"
+                  className="mt-1.5 h-32"
+                  value={clinicalSummary.symptomsRegional.join("\n")}
+                  onChange={(e) => handleSummaryArrayChange("symptomsRegional", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">AI-detected patient phrases. Edit or add lines as needed.</p>
+              </div>
+              <div>
+                <Label htmlFor="symptoms-english">Standardized English</Label>
+                <Textarea
+                  id="symptoms-english"
+                  placeholder="Chest pain\nFever\nVomiting"
+                  className="mt-1.5 h-32"
+                  value={clinicalSummary.symptomsEnglish.join("\n")}
+                  onChange={(e) => handleSummaryArrayChange("symptomsEnglish", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Mapped medical terminology for physician verification.</p>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="summary-draft">Key Findings / Narrative</Label>
+              <Textarea
+                id="summary-draft"
+                placeholder="Summarize the visit..."
+                className="mt-1.5"
+                value={clinicalSummary.summary}
+                onChange={(e) => handleSummaryTextChange("summary", e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label htmlFor="likely-diagnosis">Likely Diagnosis (editable)</Label>
+                <Textarea
+                  id="likely-diagnosis"
+                  placeholder="Probable diagnosis to be confirmed by doctor"
+                  className="mt-1.5"
+                  value={clinicalSummary.likelyDiagnosis || diagnosis}
+                  onChange={(e) => {
+                    handleSummaryTextChange("likelyDiagnosis", e.target.value);
+                    setDiagnosis(e.target.value);
+                  }}
+                />
+              </div>
+              <div>
+                <Label htmlFor="doctor-notes">Doctor Notes / Next Steps</Label>
+                <Textarea
+                  id="doctor-notes"
+                  placeholder="Doctor can record important remarks, pending tests, etc."
+                  className="mt-1.5"
+                  value={clinicalSummary.doctorNotes}
+                  onChange={(e) => handleSummaryTextChange("doctorNotes", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-between">
+              <p className="text-xs text-muted-foreground">
+                Medicines, dosage, and timing must be entered manually by the authorized doctor.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowSummaryPreview(true)}>
+                  Preview Summary Draft
+                </Button>
+                <Button onClick={handlePrintSummary}>
+                  Export / Print Summary
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
           {/* Medicine Entry */}
           <Card>
@@ -2115,6 +2310,137 @@ export default function ActiveConsultationAI() {
           </Card>
         </div>
       </div>
+
+      {/* Summary Preview Dialog */}
+      <Dialog open={showSummaryPreview} onOpenChange={setShowSummaryPreview}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Consultation Summary Draft</DialogTitle>
+            <DialogDescription>
+              AI-assisted documentation for physician review. Medicines must be filled by the doctor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4" ref={summaryPreviewRef}>
+            <div className="space-y-4">
+              <header className="border-b pb-3">
+                <h2 className="text-lg font-semibold">{clinicName}</h2>
+                <div className="grid gap-2 md:grid-cols-2 text-sm">
+                  <div>
+                    <p><strong>Patient:</strong> {patient.name}</p>
+                    <p><strong>Age / Gender:</strong> {patient.age} / {patient.gender || "-"}</p>
+                    <p><strong>Contact:</strong> {patient.phone || "-"}</p>
+                  </div>
+                  <div>
+                    <p><strong>Date &amp; Time:</strong> {new Date().toLocaleString()}</p>
+                    <p><strong>Visit ID:</strong> {patient.id}</p>
+                    <p><strong>Doctor:</strong> {user?.name || "Doctor"}</p>
+                  </div>
+                </div>
+              </header>
+
+              <section className="section">
+                <h3 className="text-base font-medium mb-2">Reason / Likely Diagnosis (Doctor to confirm)</h3>
+                <p className="text-sm border rounded p-3 bg-muted/40">
+                  {clinicalSummary.likelyDiagnosis || diagnosis || "Doctor to specify"}
+                </p>
+              </section>
+
+              <section className="section">
+                <h3 className="text-base font-medium mb-2">Symptoms &amp; Patient Expressions</h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{ width: "50%" }}>Regional Phrase</th>
+                      <th style={{ width: "50%" }}>Standardized English</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(clinicalSummary.symptomsRegional.length > 0 || clinicalSummary.symptomsEnglish.length > 0)
+                      ? Array.from({ length: Math.max(clinicalSummary.symptomsRegional.length, clinicalSummary.symptomsEnglish.length) }).map((_, idx) => (
+                        <tr key={idx}>
+                          <td>{clinicalSummary.symptomsRegional[idx] || ""}</td>
+                          <td>{clinicalSummary.symptomsEnglish[idx] || ""}</td>
+                        </tr>
+                      ))
+                      : (
+                        <tr>
+                          <td colSpan={2} className="text-sm text-muted-foreground">Doctor to document symptoms</td>
+                        </tr>
+                      )}
+                  </tbody>
+                </table>
+              </section>
+
+              <section className="section">
+                <h3 className="text-base font-medium mb-2">Summary of Findings</h3>
+                <p className="text-sm border rounded p-3 bg-muted/30">
+                  {clinicalSummary.summary || "Doctor to provide consultation summary."}
+                </p>
+              </section>
+
+              <section className="section">
+                <h3 className="text-base font-medium mb-2">Medicine Plan (Doctor to complete)</h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Medicine Name</th>
+                      <th>Dosage</th>
+                      <th>Timing / Duration</th>
+                      <th>Qty</th>
+                      <th>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...Array(4)].map((_, idx) => (
+                      <tr key={idx}>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Medicines, dosing, and schedule must be completed by a licensed physician.
+                </p>
+              </section>
+
+              <section className="section">
+                <h3 className="text-base font-medium mb-2">Advice &amp; Follow-up</h3>
+                <table>
+                  <tbody>
+                    <tr>
+                      <th style={{ width: "30%" }}>Advice</th>
+                      <td>{advice || "Doctor to add advice."}</td>
+                    </tr>
+                    <tr>
+                      <th>Follow-up Date</th>
+                      <td>{followUpDate || "--"}</td>
+                    </tr>
+                    <tr>
+                      <th>Doctor Notes</th>
+                      <td>{clinicalSummary.doctorNotes || "--"}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+
+              <section className="section">
+                <p className="text-sm"><strong>Prepared by:</strong> {user?.name || "Doctor"} (Draft)</p>
+                <p className="text-xs text-red-600 font-semibold mt-2">
+                  AI-generated documentation draft. A licensed doctor must review, edit, and sign before this summary is used for treatment or shared externally.
+                </p>
+              </section>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowSummaryPreview(false)}>Close</Button>
+            <Button onClick={handlePrintSummary}>Export / Print Summary</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Prescription Preview Dialog */}
       {showPrescriptionPreview && (
