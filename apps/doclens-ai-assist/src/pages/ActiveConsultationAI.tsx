@@ -48,6 +48,25 @@ import {
 } from "../components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 
+const mergeSymptomStrings = (current: string, incoming: string[]): string[] => {
+  const base = (current || "")
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  const seen = new Set(base.map((item) => item.toLowerCase()));
+  const result = [...base];
+  incoming.forEach((item) => {
+    const value = String(item || "").trim();
+    if (!value) return;
+    const key = value.toLowerCase();
+    if (!seen.has(key)) {
+      result.push(value);
+      seen.add(key);
+    }
+  });
+  return result;
+};
+
 interface MedicineItem {
   id: string;
   name: string;
@@ -90,6 +109,7 @@ export default function ActiveConsultationAI() {
   const speechRecognitionRef = useRef<SpeechRecognitionService | null>(null);
   const microphoneStreamRef = useRef<MediaStream | null>(null); // Keep stream active during recording
   const transcriptAccumulatorRef = useRef<string>("");
+  const finalChunksRef = useRef<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [currentSpeaker, setCurrentSpeaker] = useState<"patient" | "doctor">("patient");
@@ -293,12 +313,14 @@ export default function ActiveConsultationAI() {
       
       // Auto-fill symptoms
       if (analysis.symptoms && analysis.symptoms.length > 0) {
-        const symptomText = analysis.symptoms.join(", ");
-        console.log("[AI DOCTOR ASSISTANT] → Auto-filling symptoms:", symptomText);
+        const mergedSymptoms = mergeSymptomStrings(symptoms, analysis.symptoms);
+        const englishMerged = normalizeSymptomsToEnglish([], mergedSymptoms);
+        console.log("[AI DOCTOR ASSISTANT] → Merged symptoms:", mergedSymptoms);
         if (isMountedRef.current) {
-          setSymptoms(symptomText);
-          toast.success("✅ Symptoms auto-filled", {
-            description: `${analysis.symptoms.length} symptoms identified`,
+          setSymptoms(mergedSymptoms.join(", "));
+          setSymptomsEnglish(englishMerged.join(", "));
+          toast.success("✅ Symptoms updated", {
+            description: `${mergedSymptoms.length} total symptoms identified`,
           });
         }
       }
@@ -449,51 +471,16 @@ export default function ActiveConsultationAI() {
         });
         
         if (validEnglishSymptoms.length > 0) {
-          // Normalize to English-only using dictionary + AI output
-          const normalized = normalizeSymptomsToEnglish(validNativeSymptoms, validEnglishSymptoms);
-          const englishText = normalized.join(", ");
-          const nativeText = ""; // We now display English-only in UI
-          
-          // Update English symptoms
-          setSymptomsEnglish((prev) => {
-            if (prev && prev.length > 0 && !prev.includes("[AI-generated") && !prev.includes("Patient reports:")) {
-              const existingSymptoms = prev.split(/[,\n]/).map(s => s.trim().toLowerCase());
-              const newSymptoms = validEnglishSymptoms.filter((s: string) => 
-                !existingSymptoms.includes(String(s).trim().toLowerCase())
-              );
-              if (newSymptoms.length > 0) {
-                return `${prev}, ${newSymptoms.join(", ")}`;
-              }
-              return prev;
-            }
-            return englishText;
-          });
-          
-          // Update native symptoms
-          if (nativeText) {
-            setSymptomsNative((prev) => {
-              if (prev && prev.length > 0 && !prev.includes("[AI-generated") && !prev.includes("Patient reports:")) {
-                const existingSymptoms = prev.split(/[,\n]/).map(s => s.trim().toLowerCase());
-                const newSymptoms = validNativeSymptoms.filter((s: string) => 
-                  !existingSymptoms.includes(String(s).trim().toLowerCase())
-                );
-                if (newSymptoms.length > 0) {
-                  return `${prev}, ${newSymptoms.join(", ")}`;
-                }
-                return prev;
-              }
-              return nativeText;
-            });
-          }
-          
-          // Also update main symptoms field (for backward compatibility)
-          setSymptoms(englishText);
-          
+          const merged = mergeSymptomStrings(symptoms, validEnglishSymptoms);
+          const normalized = normalizeSymptomsToEnglish([], merged);
+          setSymptoms(merged.join(", "));
+          setSymptomsEnglish(normalized.join(", "));
+          setSymptomsNative("");
+
           toast.success("Symptoms extracted", {
             description: `${normalized.length} symptoms found (standardized to English)`,
           });
-          
-          // Auto-trigger diagnosis suggestions after symptoms are extracted
+
           setTimeout(() => {
             getDiagnosisSuggestions();
           }, 1000);
@@ -556,20 +543,37 @@ export default function ActiveConsultationAI() {
             return;
           }
           
+          const sanitize = (text: string) => text.replace(/\s+/g, " ").trim();
+          const existing = transcriptAccumulatorRef.current;
+          const sanitizedFull = sanitize(result.transcript);
+
           if (result.isFinal) {
-            transcriptAccumulatorRef.current = transcriptAccumulatorRef.current
-              ? `${transcriptAccumulatorRef.current} ${chunk}`.trim()
-              : chunk;
+            if (!existing) {
+              transcriptAccumulatorRef.current = sanitizedFull;
+              finalChunksRef.current = sanitizedFull ? [sanitizedFull] : [];
+            } else if (sanitizedFull.length >= existing.length && sanitizedFull.toLowerCase().includes(existing.toLowerCase())) {
+              transcriptAccumulatorRef.current = sanitizedFull;
+              finalChunksRef.current = sanitizedFull ? [sanitizedFull] : [];
+            } else {
+              const sanitizedChunk = sanitize(chunk);
+              if (sanitizedChunk && !existing.toLowerCase().includes(sanitizedChunk.toLowerCase())) {
+                transcriptAccumulatorRef.current = sanitize(`${existing} ${sanitizedChunk}`);
+                finalChunksRef.current.push(sanitizedChunk);
+              }
+            }
             setFullTranscript(transcriptAccumulatorRef.current);
           } else {
-            // Interim display = accumulated + current chunk
-            setFullTranscript(`${transcriptAccumulatorRef.current} ${chunk}`.trim());
+            const preview = sanitizedFull || sanitize(`${existing} ${chunk}`);
+            setFullTranscript(preview);
           }
           
           // Auto-detect language periodically (every 50+ characters)
-          if (result.isFinal && transcriptAccumulatorRef.current.length > 50) {
+          const detectionSource = result.isFinal
+            ? transcriptAccumulatorRef.current
+            : `${transcriptAccumulatorRef.current} ${chunk}`;
+          if (detectionSource.length > 50) {
             console.log("[ActiveConsultationAI] 🌐 Detecting language from transcript...");
-            detectLanguage(transcriptAccumulatorRef.current).then((lang) => {
+            detectLanguage(detectionSource).then((lang) => {
               console.log("[ActiveConsultationAI] ✅ Language detected:", lang);
               const now = Date.now();
               setDetectedLanguage(lang);
@@ -587,7 +591,7 @@ export default function ActiveConsultationAI() {
           }
           
           // Trigger analysis on finalized patient phrases using cumulative transcript
-          if (result.isFinal && (result.speaker === "patient" || !result.speaker) && chunk.length > 5) {
+          if (result.isFinal && (result.speaker === "patient" || !result.speaker) && transcriptAccumulatorRef.current.length > 10) {
             const cumulativeTranscript = transcriptAccumulatorRef.current;
             console.log("[ActiveConsultationAI] 🤖 Final transcript - analyzing cumulative conversation...");
             analyzeConsultationComprehensive(cumulativeTranscript).catch(err => {
@@ -625,6 +629,8 @@ export default function ActiveConsultationAI() {
     return () => {
       console.log("[Consultation] Cleaning up speech recognition");
       speechRecognitionRef.current?.stop();
+      finalChunksRef.current = [];
+      transcriptAccumulatorRef.current = "";
       // Clear background timer if created
       // (No-op if not set in certain browsers)
       
