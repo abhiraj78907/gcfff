@@ -31,12 +31,17 @@ export function useReceptionQueue() {
     }
 
     const colPath = paths.receptionQueue(entityId, subEntryId);
-    const unsub = listenCollection<ReceptionQueueItem>(colPath, (rows) => {
+    let unsub: (() => void) | undefined;
+    listenCollection<ReceptionQueueItem>(colPath, (rows) => {
       setItems(rows);
       setLoading(false);
+    }).then((unsubscribe) => {
+      unsub = unsubscribe;
     });
 
-    return () => unsub();
+    return () => {
+      if (unsub) unsub();
+    };
   }, [entityId, subEntryId]);
 
   const sorted = useMemo(() => {

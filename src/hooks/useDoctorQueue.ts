@@ -20,16 +20,20 @@ export function useDoctorQueue() {
     }
 
     const queuePath = paths.doctorQueue(entityId, doctorId);
-    const unsub = listenCollection<AppointmentDoc>(queuePath, (rows) => {
-      // Filter to active/upcoming appointments
+    let unsub: (() => void) | undefined;
+    listenCollection<AppointmentDoc>(queuePath, (rows) => {
       const active = rows.filter(
         (apt) => apt.status === "upcoming" || !apt.status
       );
       setQueue(active);
       setLoading(false);
+    }).then((unsubscribe) => {
+      unsub = unsubscribe;
     });
 
-    return () => unsub();
+    return () => {
+      if (unsub) unsub();
+    };
   }, [entityId, doctorId]);
 
   return { queue, loading };

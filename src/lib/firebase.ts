@@ -1,10 +1,9 @@
-import { initializeApp, type FirebaseOptions, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, type FirebaseApp, type FirebaseOptions, getApps } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
 import { getAnalytics, isSupported as analyticsSupported } from "firebase/analytics";
 
-// Fetch config at runtime from serverless function to avoid embedding keys
-async function getConfig(): Promise<FirebaseOptions> {
+async function fetchFirebaseConfig(): Promise<FirebaseOptions> {
   try {
     const res = await fetch("/.netlify/functions/firebase-config");
     if (res.ok) {
@@ -20,7 +19,7 @@ async function getConfig(): Promise<FirebaseOptions> {
       } as FirebaseOptions;
     }
   } catch {}
-  // Fallback to env if function unavailable (local/dev)
+
   return {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -32,50 +31,32 @@ async function getConfig(): Promise<FirebaseOptions> {
   } as FirebaseOptions;
 }
 
-let appPromise: Promise<ReturnType<typeof initializeApp>> | null = null;
-function getAppInstance() {
-  if (getApps().length) return Promise.resolve(getApps()[0]);
-  if (!appPromise) appPromise = getConfig().then(cfg => initializeApp(cfg));
+let appPromise: Promise<FirebaseApp> | null = null;
+let authInstance: Auth | null = null;
+let dbInstance: Firestore | null = null;
+
+async function ensureFirebaseApp(): Promise<FirebaseApp> {
+  if (getApps().length) return getApps()[0];
+  if (!appPromise) appPromise = fetchFirebaseConfig().then(cfg => initializeApp(cfg));
   return appPromise;
 }
 
-// Proxies expose auth/db with lazy, singleton init without duplicating exports
-let _auth: ReturnType<typeof getAuth> | null = null;
-let _db: ReturnType<typeof getFirestore> | null = null;
-
-export const auth = new Proxy({} as ReturnType<typeof getAuth>, {
-  get(_t, prop) {
-    return async (...args: any[]) => {
-      if (!_auth) _auth = getAuth(await getAppInstance());
-      // @ts-ignore
-      return (_auth as any)[prop](...args);
-    };
-  }
-});
-
-export const db = new Proxy({} as ReturnType<typeof getFirestore>, {
-  get(_t, prop) {
-    return async (...args: any[]) => {
-      if (!_db) _db = getFirestore(await getAppInstance());
-      // @ts-ignore
-      return (_db as any)[prop](...args);
-    };
-  }
-});
+export async function getFirebase() {
+  const app = await ensureFirebaseApp();
+  if (!authInstance) authInstance = getAuth(app);
+  if (!dbInstance) dbInstance = getFirestore(app);
+  return { app, auth: authInstance, db: dbInstance };
+}
 
 export const analyticsPromise = (async () => {
   try {
     const supported = await analyticsSupported();
     if (!supported) return null;
-    const app = await getAppInstance();
+    const { app } = await getFirebase();
     return getAnalytics(app);
   } catch {
     return null;
   }
 })();
-
-export const app = {
-  get: getAppInstance
-};
 
 

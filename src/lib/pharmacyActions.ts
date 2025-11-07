@@ -1,6 +1,6 @@
 import { runTransaction } from "./db";
 import { doc, collection, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "./firebase";
+import { getFirebase } from "./firebase";
 import { paths } from "./db";
 import type { EntityId } from "./firebaseTypes";
 
@@ -19,6 +19,7 @@ export async function dispensePrescription(
   prescriptionId: string,
   items: DispensationItem[]
 ): Promise<void> {
+  const { db } = await getFirebase();
   const inventoryPath = paths.pharmacyInventory(entityId);
   const dispensationsPath = paths.dispensations(entityId);
 
@@ -63,6 +64,7 @@ export async function markPrescriptionDispensed(
   patientId: string,
   prescriptionId: string
 ): Promise<void> {
+  const { db } = await getFirebase();
   const prescriptionsPath = paths.patientPrescriptions(entityId, patientId);
   await updateDoc(doc(db, prescriptionsPath, prescriptionId), {
     status: "dispensed",

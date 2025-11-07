@@ -1,5 +1,5 @@
 import { runTransaction } from "firebase/firestore";
-import { db } from "./firebase";
+import { getFirebase } from "./firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { paths } from "./db";
 import type { EntityId } from "./firebaseTypes";
@@ -15,6 +15,7 @@ export async function getNextToken(
   entityId: EntityId,
   subEntryId: string
 ): Promise<string> {
+  const { db } = await getFirebase();
   const counterPath = TOKEN_COUNTER_PATH(entityId, subEntryId);
   const counterRef = doc(db, counterPath);
 

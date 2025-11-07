@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import type { UserProfile, UserRole } from "@/types/entities";
-import { auth } from "../lib/firebase";
+import { getFirebase } from "../lib/firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { fetchUserProfile, createUserProfile } from "../lib/userProfile";
 
@@ -33,7 +33,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Firebase auth listener with Firestore profile fetch
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (fbUser) => {
+    let unsub = () => {};
+    getFirebase().then(({ auth }) => {
+      unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (!fbUser) {
         setUser(null);
         return;
@@ -75,6 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch {}
       
       setUser(next);
+      });
     });
     return () => unsub();
   }, []);

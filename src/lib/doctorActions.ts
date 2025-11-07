@@ -29,7 +29,8 @@ export async function createConsultation(
 ): Promise<string> {
   const consultationsPath = paths.consultations(entityId, doctorId);
   const { addDoc, collection } = await import("firebase/firestore");
-  const { db } = await import("./firebase");
+  const { getFirebase } = await import("./firebase");
+  const { db } = await getFirebase();
   const result = await addDoc(collection(db, consultationsPath), {
     visitId: consultation.visitId,
     patientId: consultation.patientId,
@@ -62,7 +63,8 @@ export async function createPrescription(
 ): Promise<string> {
   const prescriptionsPath = paths.patientPrescriptions(entityId, patientId);
   const { addDoc, collection } = await import("firebase/firestore");
-  const { db } = await import("./firebase");
+  const { getFirebase } = await import("./firebase");
+  const { db } = await getFirebase();
   const result = await addDoc(collection(db, prescriptionsPath), {
     visitId,
     doctorId,
@@ -87,7 +89,8 @@ export async function createLabOrder(
 ): Promise<string> {
   const requestsPath = paths.labRequests(entityId);
   const { addDoc, collection } = await import("firebase/firestore");
-  const { db } = await import("./firebase");
+  const { getFirebase } = await import("./firebase");
+  const { db } = await getFirebase();
   const result = await addDoc(collection(db, requestsPath), {
     patientId,
     doctorId,

@@ -19,12 +19,17 @@ export function useLabRequests() {
     }
 
     const colPath = paths.labRequests(entityId);
-    const unsub = listenCollection<LabRequestDoc>(colPath, (rows) => {
+    let unsub: (() => void) | undefined;
+    listenCollection<LabRequestDoc>(colPath, (rows) => {
       setRequests(rows);
       setLoading(false);
+    }).then((unsubscribe) => {
+      unsub = unsubscribe;
     });
 
-    return () => unsub();
+    return () => {
+      if (unsub) unsub();
+    };
   }, [entityId]);
 
   const updateStatus = async (requestId: string, status: LabRequestDoc["status"]) => {

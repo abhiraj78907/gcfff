@@ -1373,7 +1373,8 @@ export default function ActiveConsultationAI() {
         if (entityId && medicines.length > 0) {
           // Create notification document for pharmacist
           const { addDoc, collection } = await import("firebase/firestore");
-          const { db } = await import("@shared/lib/firebase");
+          const { getFirebase } = await import("@shared/lib/firebase");
+          const { db } = await getFirebase();
           await addDoc(collection(db, `entities/${entityId}/notifications`), {
             type: "prescription_created",
             patientId: patient.id,

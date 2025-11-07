@@ -41,19 +41,23 @@ export function useCompletedConsultations() {
     today.setHours(0, 0, 0, 0);
     const todayTimestamp = today.getTime();
     
-    const unsub = listenCollection<CompletedConsultation>(
+    let unsub: (() => void) | undefined;
+    listenCollection<CompletedConsultation>(
       consultationsPath,
       (rows) => {
-        // Filter consultations from today onwards (completed ones)
         const todayConsultations = rows.filter(
           (c) => c.createdAt >= todayTimestamp
         );
         setConsultations(todayConsultations);
         setLoading(false);
       }
-    );
+    ).then((unsubscribe) => {
+      unsub = unsubscribe;
+    });
 
-    return () => unsub();
+    return () => {
+      if (unsub) unsub();
+    };
   }, [entityId, doctorId]);
 
   // Calculate stats

@@ -36,8 +36,8 @@ export function usePatientHistory(patientId?: string) {
     // For now, we'll use a simplified approach - get from patient's appointments
     const appointmentsPath = paths.patientAppointments(entityId, targetPatientId);
     
-    const unsub = listenCollection<any>(appointmentsPath, (rows) => {
-      // Transform appointments to history format
+    let unsub: (() => void) | undefined;
+    listenCollection<any>(appointmentsPath, (rows) => {
       const historyItems: PatientHistoryVisit[] = rows
         .filter((apt) => apt.status === "completed")
         .map((apt) => ({
@@ -52,17 +52,21 @@ export function usePatientHistory(patientId?: string) {
           department: apt.specialty || "General Medicine",
           diagnosis: apt.reason || "General Consultation",
           symptoms: apt.reason,
-          medicines: "", // Would need to fetch from prescriptions
+          medicines: "",
           followUp: apt.followUpDate || "",
           createdAt: apt.createdAt || Date.now(),
         }))
-        .sort((a, b) => b.createdAt - a.createdAt); // Latest first
+        .sort((a, b) => b.createdAt - a.createdAt);
 
       setHistory(historyItems);
       setLoading(false);
+    }).then((unsubscribe) => {
+      unsub = unsubscribe;
     });
 
-    return () => unsub();
+    return () => {
+      if (unsub) unsub();
+    };
   }, [entityId, targetPatientId]);
 
   return { history, loading };

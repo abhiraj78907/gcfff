@@ -29,11 +29,16 @@ export function usePharmacyInventory() {
       return;
     }
     const colPath = paths.pharmacyInventory(entityId);
-    const unsub = listenCollection<InventoryItem>(colPath, (rows) => {
+    let unsub: (() => void) | undefined;
+    listenCollection<InventoryItem>(colPath, (rows) => {
       setItems(rows);
       setLoading(false);
+    }).then((unsubscribe) => {
+      unsub = unsubscribe;
     });
-    return () => unsub();
+    return () => {
+      if (unsub) unsub();
+    };
   }, [entityId]);
 
   return { items, loading };
