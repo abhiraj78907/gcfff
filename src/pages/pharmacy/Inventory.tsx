@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Download, Trash2, Edit, Calendar } from "lucide-react";
 import { getMedicinesByEntity } from "../../lib/mockData";
 import { useSubEntry } from "../../contexts/SubEntryContext";
+import { usePharmacyInventory } from "@/hooks/usePharmacyInventory";
 import { StatCard } from "../../components/StatCard";
 import { Package, AlertTriangle, TrendingUp } from "lucide-react";
 
@@ -13,13 +14,16 @@ export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState("");
   const { currentEntityId } = useSubEntry();
   const mockMedicines = getMedicinesByEntity(currentEntityId);
+  const { items, loading } = usePharmacyInventory();
+  const liveMedicines = items.length ? items : [];
+  const medicines = liveMedicines.length ? liveMedicines : mockMedicines;
 
-  const lowStockCount = mockMedicines.filter(m => m.quantity < m.reorderThreshold).length;
-  const expiringCount = mockMedicines.filter(m => {
+  const lowStockCount = medicines.filter(m => (m.reorderThreshold ?? 0) > 0 && m.quantity < (m.reorderThreshold ?? 0)).length;
+  const expiringCount = medicines.filter(m => {
     const daysUntilExpiry = Math.floor((new Date(m.expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
     return daysUntilExpiry < 90 && daysUntilExpiry > 0;
   }).length;
-  const totalValue = mockMedicines.reduce((sum, m) => sum + (m.quantity * m.price), 0);
+  const totalValue = medicines.reduce((sum, m) => sum + (m.quantity * (m.price ?? 0)), 0);
 
   const getExpiryStatus = (expiryDate: string) => {
     const daysUntilExpiry = Math.floor((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
@@ -28,10 +32,10 @@ export default function Inventory() {
     return { status: "good", color: "success" };
   };
 
-  const filteredMedicines = mockMedicines.filter(medicine =>
+  const filteredMedicines = medicines.filter(medicine =>
     medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    medicine.batch.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    medicine.supplier.toLowerCase().includes(searchTerm.toLowerCase())
+    (medicine.batch ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (medicine.supplier ?? "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (

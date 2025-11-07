@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+
+    // Custom claims suggested: { role: 'patient' | 'doctor' | 'pharmacist' | 'lab-tech' | 'receptionist' | 'admin', entityId: '...' }
+    function role() { return request.auth.token.role; }
+    function entityId() { return request.auth.token.entityId; }
+
+    // Users collection - users can read/write their own profile
+    match /users/{userId} {
+      allow read: if isSignedIn() && (uid() == userId || role() == 'admin');
+      allow write: if isSignedIn() && uid() == userId;
+    }
+
+    // Entities - entity-scoped access
+    match /entities/{eId}/{document=**} {
+      allow read, write: if isSignedIn() && eId == entityId();
+    }
+
+    // Patients: read own medicines/prescriptions/appointments, cannot write final records
+    match /entities/{eId}/patients/{pId}/{coll=**}/{doc} {
+      allow read: if isSignedIn() && eId == entityId() && (role() in ['patient','doctor','pharmacist','lab-tech','receptionist','admin']) && (role() != 'patient' || uid() == pId);
+      allow create, update: if isSignedIn() && eId == entityId() && (
+        (role() == 'patient' && uid() == pId && coll in ['appointments'] ) ||
+        (role() == 'doctor') ||
+        (role() == 'receptionist')
+      );
+    }
+
+    // Doctors
+    match /entities/{eId}/doctors/{dId}/{document=**} {
+      allow read, write: if isSignedIn() && eId == entityId() && (role() == 'doctor' && uid() == dId || role() == 'admin');
+    }
+
+    // Lab
+    match /entities/{eId}/lab/{document=**} {
+      allow read: if isSignedIn() && eId == entityId();
+      allow write: if isSignedIn() && eId == entityId() && role() in ['lab-tech','admin'];
+    }
+
+    // Pharmacy
+    match /entities/{eId}/pharmacy/{document=**} {
+      allow read: if isSignedIn() && eId == entityId();
+      allow write: if isSignedIn() && eId == entityId() && role() in ['pharmacist','admin'];
+    }
+
+    // Sub-entries queue
+    match /entities/{eId}/subEntries/{subId}/{document=**} {
+      allow read, write: if isSignedIn() && eId == entityId();
+    }
+  }
+}
+

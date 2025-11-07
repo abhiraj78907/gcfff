@@ -1,7 +1,7 @@
 import { Bell, LogOut, Settings, UserCircle, Stethoscope } from "lucide-react";
-import { Button } from "@doctor/components/ui/button";
-import { Badge } from "@doctor/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@doctor/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,8 +9,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@doctor/components/ui/dropdown-menu";
-import { SidebarTrigger } from "@doctor/components/ui/sidebar";
+} from "@/components/ui/dropdown-menu";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@shared/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 

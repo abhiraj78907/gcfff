@@ -1,8 +1,9 @@
-import { Search, Download, RotateCcw, Filter } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@doctor/components/ui/card";
-import { Button } from "@doctor/components/ui/button";
-import { Input } from "@doctor/components/ui/input";
-import { Badge } from "@doctor/components/ui/badge";
+import { useState, useMemo } from "react";
+import { Search, Download, RotateCcw, Filter, Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,48 +12,62 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@doctor/components/ui/select";
-
-const completedConsultations = [
-  {
-    id: "VIMS-2025-12345",
-    name: "Ramesh Kumar",
-    age: "45M",
-    time: "10:45 AM",
-    diagnosis: "Viral Fever",
-    medicines: "Paracetamol 500mg (3x5 days)",
-    followUp: "6 Nov 2025",
-  },
-  {
-    id: "VIMS-2025-12344",
-    name: "Sita Devi",
-    age: "38F",
-    time: "10:30 AM",
-    diagnosis: "Upper Respiratory Infection",
-    medicines: "Azithromycin, Cetirizine",
-    followUp: "8 Nov 2025",
-  },
-  {
-    id: "VIMS-2025-12343",
-    name: "Abdul Khan",
-    age: "52M",
-    time: "10:15 AM",
-    diagnosis: "Diabetes Follow-up",
-    medicines: "Metformin 500mg (2x daily)",
-    followUp: "10 Nov 2025",
-  },
-];
+} from "@/components/ui/select";
+import { useCompletedConsultations } from "@shared/hooks/useCompletedConsultations";
 
 export default function CompletedConsultations() {
   const navigate = useNavigate();
+  // Initialize with default - never undefined
+  const [filterPeriod, setFilterPeriod] = useState<string>("today");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  
+  // Use real Firebase data
+  const { consultations, loading, stats } = useCompletedConsultations();
+  
+  // Filter consultations by period and search
+  const filteredConsultations = useMemo(() => {
+    let filtered = consultations;
+    
+    // Filter by period
+    const now = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+    
+    if (filterPeriod === "today") {
+      const todayStart = new Date().setHours(0, 0, 0, 0);
+      filtered = filtered.filter(c => c.createdAt >= todayStart);
+    } else if (filterPeriod === "yesterday") {
+      const yesterdayStart = new Date().setHours(0, 0, 0, 0) - dayMs;
+      const todayStart = new Date().setHours(0, 0, 0, 0);
+      filtered = filtered.filter(c => c.createdAt >= yesterdayStart && c.createdAt < todayStart);
+    } else if (filterPeriod === "week") {
+      const weekStart = now - (7 * dayMs);
+      filtered = filtered.filter(c => c.createdAt >= weekStart);
+    } else if (filterPeriod === "month") {
+      const monthStart = now - (30 * dayMs);
+      filtered = filtered.filter(c => c.createdAt >= monthStart);
+    }
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(c => 
+        (c.patientName?.toLowerCase().includes(query)) ||
+        (c.patientId?.toLowerCase().includes(query)) ||
+        (c.diagnosis?.toLowerCase().includes(query))
+      );
+    }
+    
+    return filtered.sort((a, b) => b.createdAt - a.createdAt); // Latest first
+  }, [consultations, filterPeriod, searchQuery]);
 
-  const handleViewPrescription = (patientName: string) => {
+  const handleViewPrescription = (patientId: string, patientName: string) => {
     toast.info(`Viewing prescription for ${patientName}`);
+    // Could navigate to prescription view
   };
 
-  const handleReopen = (patientName: string) => {
-    toast.success(`Reopening consultation for ${patientName}`);
-    navigate("/consultation");
+  const handleReopen = (consultation: any) => {
+    toast.success(`Reopening consultation for ${consultation.patientName || consultation.patientId}`);
+    navigate("/consultation", { state: { patient: { id: consultation.patientId } } });
   };
 
   const handleDownload = (patientName: string) => {
@@ -66,7 +81,14 @@ export default function CompletedConsultations() {
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold tracking-tight text-foreground">Completed Consultations</h2>
-        <p className="text-muted-foreground">Today, 3 Nov 2025</p>
+        <p className="text-muted-foreground">
+          {new Date().toLocaleDateString("en-IN", { 
+            weekday: "long", 
+            year: "numeric", 
+            month: "long", 
+            day: "numeric" 
+          })}
+        </p>
       </div>
 
       {/* Performance Metrics */}
@@ -76,7 +98,7 @@ export default function CompletedConsultations() {
             <CardTitle className="text-sm text-muted-foreground">Total Today</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">12</div>
+            <div className="text-2xl font-bold text-foreground">{stats.total}</div>
           </CardContent>
         </Card>
         <Card>
@@ -84,7 +106,7 @@ export default function CompletedConsultations() {
             <CardTitle className="text-sm text-muted-foreground">Avg Time</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">8 min</div>
+            <div className="text-2xl font-bold text-foreground">{stats.avgTime} min</div>
           </CardContent>
         </Card>
         <Card>
@@ -92,7 +114,7 @@ export default function CompletedConsultations() {
             <CardTitle className="text-sm text-muted-foreground">Prescriptions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">12</div>
+            <div className="text-2xl font-bold text-foreground">{stats.prescriptions}</div>
           </CardContent>
         </Card>
         <Card>
@@ -100,7 +122,7 @@ export default function CompletedConsultations() {
             <CardTitle className="text-sm text-muted-foreground">Lab Tests</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">3</div>
+            <div className="text-2xl font-bold text-foreground">{stats.labTests}</div>
           </CardContent>
         </Card>
       </div>
@@ -114,10 +136,15 @@ export default function CompletedConsultations() {
               <Input
                 placeholder="Search by patient name or ID..."
                 className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <div className="flex gap-2">
-              <Select defaultValue="today">
+              <Select value={filterPeriod} onValueChange={(value) => {
+                console.log("[CompletedConsultations] Filter period changed:", value);
+                setFilterPeriod(value);
+              }}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -147,7 +174,24 @@ export default function CompletedConsultations() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {completedConsultations.map((consultation) => (
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Loading consultations...</span>
+            </div>
+          ) : filteredConsultations.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No completed consultations found
+            </div>
+          ) : (
+            filteredConsultations.map((consultation) => {
+              const consultationDate = new Date(consultation.createdAt);
+              const timeStr = consultationDate.toLocaleTimeString("en-IN", { 
+                hour: "2-digit", 
+                minute: "2-digit" 
+              });
+              
+              return (
             <Card key={consultation.id} className="border border-border">
               <CardContent className="pt-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -155,32 +199,40 @@ export default function CompletedConsultations() {
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-semibold text-lg text-foreground">
-                          {consultation.name}
+                              {consultation.patientName || consultation.patientId || "Unknown Patient"}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          {consultation.age} • {consultation.id}
+                              {consultation.patientId} • {consultation.visitId}
                         </p>
                       </div>
                       <Badge variant="secondary" className="ml-4">
-                        ✓ Completed at {consultation.time}
+                            ✓ Completed at {timeStr}
                       </Badge>
                     </div>
                     
                     <div className="grid sm:grid-cols-2 gap-2 text-sm">
                       <div>
                         <span className="text-muted-foreground">Diagnosis:</span>
-                        <span className="ml-2 font-medium text-foreground">{consultation.diagnosis}</span>
+                            <span className="ml-2 font-medium text-foreground">
+                              {consultation.diagnosis || "N/A"}
+                            </span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Follow-up:</span>
-                        <span className="ml-2 font-medium text-foreground">{consultation.followUp}</span>
+                            <span className="ml-2 font-medium text-foreground">
+                              {consultation.followUpDate 
+                                ? new Date(consultation.followUpDate).toLocaleDateString("en-IN")
+                                : "N/A"}
+                            </span>
                       </div>
                     </div>
                     
+                        {consultation.medicines && (
                     <div className="text-sm">
                       <span className="text-muted-foreground">Medicines:</span>
                       <span className="ml-2 text-foreground">{consultation.medicines}</span>
                     </div>
+                        )}
                   </div>
 
                   <div className="flex flex-col gap-2 sm:w-auto">
@@ -188,7 +240,7 @@ export default function CompletedConsultations() {
                       variant="outline" 
                       size="sm" 
                       className="w-full sm:w-auto"
-                      onClick={() => handleViewPrescription(consultation.name)}
+                          onClick={() => handleViewPrescription(consultation.patientId, consultation.patientName || "")}
                     >
                       View Prescription
                     </Button>
@@ -197,7 +249,7 @@ export default function CompletedConsultations() {
                         variant="ghost" 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => handleReopen(consultation.name)}
+                            onClick={() => handleReopen(consultation)}
                       >
                         <RotateCcw className="h-4 w-4 mr-2" />
                         Reopen
@@ -205,7 +257,7 @@ export default function CompletedConsultations() {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => handleDownload(consultation.name)}
+                            onClick={() => handleDownload(consultation.patientName || consultation.patientId)}
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -214,7 +266,9 @@ export default function CompletedConsultations() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+              );
+            })
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,74 +8,37 @@ import { DndContext, DragEndEvent, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useNavigate } from "react-router-dom";
+import { useLabRequests } from "@/hooks/useLabRequests";
+import { toast } from "@/components/ui/use-toast";
+import type { LabRequestDoc } from "@/lib/firebaseTypes";
 
-type TestStatus = "new" | "inProgress" | "completed";
+type TestStatus = "ordered" | "in_progress" | "completed" | "cancelled";
 
 interface TestRequest {
   id: string;
-  patientName: string;
+  patientName?: string;
   patientId: string;
-  tests: string[];
-  requestDate: string;
-  urgency: "routine" | "urgent";
-  doctor: string;
+  testType: string;
+  requestDate?: string;
+  urgency?: "routine" | "urgent";
+  doctor?: string;
+  doctorId?: string;
   status: TestStatus;
 }
 
-const initialTests: TestRequest[] = [
-  {
-    id: "TR-001",
-    patientName: "Rajesh Kumar",
-    patientId: "P-12345",
-    tests: ["Complete Blood Count", "ESR"],
-    requestDate: "2025-11-03",
-    urgency: "urgent",
-    doctor: "Dr. Sharma",
-    status: "new",
-  },
-  {
-    id: "TR-002",
-    patientName: "Priya Patel",
-    patientId: "P-12346",
-    tests: ["Fasting Blood Sugar", "HbA1c"],
-    requestDate: "2025-11-03",
-    urgency: "routine",
-    doctor: "Dr. Mehta",
-    status: "new",
-  },
-  {
-    id: "TR-003",
-    patientName: "Amit Singh",
-    patientId: "P-12347",
-    tests: ["Lipid Profile"],
-    requestDate: "2025-11-02",
-    urgency: "urgent",
-    doctor: "Dr. Verma",
-    status: "inProgress",
-  },
-  {
-    id: "TR-004",
-    patientName: "Sneha Reddy",
-    patientId: "P-12348",
-    tests: ["Liver Function Test"],
-    requestDate: "2025-11-02",
-    urgency: "routine",
-    doctor: "Dr. Rao",
-    status: "inProgress",
-  },
-  {
-    id: "TR-005",
-    patientName: "Vikram Joshi",
-    patientId: "P-12349",
-    tests: ["Kidney Function Test"],
-    requestDate: "2025-11-01",
-    urgency: "routine",
-    doctor: "Dr. Khan",
-    status: "completed",
-  },
-];
+// Map Firestore LabRequestDoc to TestRequest UI format
+function mapLabRequestToTestRequest(doc: LabRequestDoc): TestRequest {
+  return {
+    id: doc.id,
+    patientId: doc.patientId,
+    testType: doc.testType,
+    status: doc.status,
+    doctorId: doc.doctorId,
+    requestDate: doc.createdAt ? new Date(doc.createdAt).toISOString().split("T")[0] : undefined,
+  };
+}
 
-function TestCard({ test }: { test: TestRequest }) {
+function TestCard({ test, onStatusChange }: { test: TestRequest; onStatusChange: (id: string, status: TestStatus) => void }) {
   const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: test.id,
@@ -93,37 +56,35 @@ function TestCard({ test }: { test: TestRequest }) {
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardTitle className="text-base">{test.patientName}</CardTitle>
+              <CardTitle className="text-base">{test.patientName || `Patient ${test.patientId}`}</CardTitle>
               <CardDescription className="text-xs">{test.patientId}</CardDescription>
             </div>
-            <Badge variant={test.urgency === "urgent" ? "destructive" : "secondary"}>
-              {test.urgency}
-            </Badge>
+            {test.urgency && (
+              <Badge variant={test.urgency === "urgent" ? "destructive" : "secondary"}>
+                {test.urgency}
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="text-sm">
-            <p className="text-muted-foreground mb-1">Tests Ordered:</p>
-            <div className="flex flex-wrap gap-1">
-              {test.tests.map((t, i) => (
-                <Badge key={i} variant="outline" className="text-xs">
-                  {t}
-                </Badge>
-              ))}
-            </div>
+            <p className="text-muted-foreground mb-1">Test Type:</p>
+            <Badge variant="outline" className="text-xs">
+              {test.testType}
+            </Badge>
           </div>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Dr. {test.doctor}</span>
-            <span>{test.requestDate}</span>
+            {test.doctor && <span>Dr. {test.doctor}</span>}
+            <span>{test.requestDate || "N/A"}</span>
           </div>
           <div className="flex gap-2 pt-2">
-            {test.status === "new" && (
-              <Button size="sm" className="flex-1">
+            {test.status === "ordered" && (
+              <Button size="sm" className="flex-1" onClick={() => onStatusChange(test.id, "in_progress")}>
                 <Play className="h-3 w-3 mr-1" />
                 Start Test
               </Button>
             )}
-            {test.status === "inProgress" && (
+            {test.status === "in_progress" && (
               <Button size="sm" className="flex-1" onClick={() => navigate("/lab/upload")}>
                 <UploadIcon className="h-3 w-3 mr-1" />
                 Upload Results
@@ -143,17 +104,36 @@ function TestCard({ test }: { test: TestRequest }) {
 }
 
 export default function TestRequests() {
-  const [tests, setTests] = useState<TestRequest[]>(initialTests);
+  const { requests, loading, updateStatus } = useLabRequests();
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+
+  const tests = useMemo(() => requests.map(mapLabRequestToTestRequest), [requests]);
 
   const filteredTests = tests.filter(
     (test) =>
-      test.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (test.patientName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
       test.patientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      test.tests.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
+      test.testType.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleStatusChange = async (testId: string, newStatus: TestStatus) => {
+    try {
+      await updateStatus(testId, newStatus);
+      toast({
+        title: "Status updated",
+        description: `Test request moved to ${newStatus}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
 
@@ -162,12 +142,30 @@ export default function TestRequests() {
 
     const newStatus = over.id as TestStatus;
     if (activeTest.status !== newStatus) {
-      setTests(tests.map((t) => (t.id === activeTest.id ? { ...t, status: newStatus } : t)));
+      await handleStatusChange(activeTest.id, newStatus);
     }
   };
 
-  const getTestsByStatus = (status: TestStatus) =>
-    filteredTests.filter((test) => test.status === status);
+  const getTestsByStatus = (status: TestStatus) => {
+    const statusMap: Record<string, TestStatus> = {
+      new: "ordered",
+      inProgress: "in_progress",
+      completed: "completed",
+    };
+    const mappedStatus = statusMap[status] ?? status;
+    return filteredTests.filter((test) => test.status === mappedStatus);
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Test Requests Kanban Board</h1>
+          <p className="text-muted-foreground mt-1">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -191,11 +189,11 @@ export default function TestRequests() {
           <div>
             <div className="mb-4 px-4 py-2 bg-secondary rounded-lg">
               <h2 className="font-semibold text-foreground">New Requests</h2>
-              <p className="text-xs text-muted-foreground">{getTestsByStatus("new").length} tests</p>
+              <p className="text-xs text-muted-foreground">{getTestsByStatus("ordered").length} tests</p>
             </div>
-            <SortableContext items={getTestsByStatus("new").map((t) => t.id)} strategy={verticalListSortingStrategy}>
-              {getTestsByStatus("new").map((test) => (
-                <TestCard key={test.id} test={test} />
+            <SortableContext items={getTestsByStatus("ordered").map((t) => t.id)} strategy={verticalListSortingStrategy}>
+              {getTestsByStatus("ordered").map((test) => (
+                <TestCard key={test.id} test={test} onStatusChange={handleStatusChange} />
               ))}
             </SortableContext>
           </div>
@@ -203,11 +201,11 @@ export default function TestRequests() {
           <div>
             <div className="mb-4 px-4 py-2 bg-warning/20 rounded-lg">
               <h2 className="font-semibold text-foreground">In Progress</h2>
-              <p className="text-xs text-muted-foreground">{getTestsByStatus("inProgress").length} tests</p>
+              <p className="text-xs text-muted-foreground">{getTestsByStatus("in_progress").length} tests</p>
             </div>
-            <SortableContext items={getTestsByStatus("inProgress").map((t) => t.id)} strategy={verticalListSortingStrategy}>
-              {getTestsByStatus("inProgress").map((test) => (
-                <TestCard key={test.id} test={test} />
+            <SortableContext items={getTestsByStatus("in_progress").map((t) => t.id)} strategy={verticalListSortingStrategy}>
+              {getTestsByStatus("in_progress").map((test) => (
+                <TestCard key={test.id} test={test} onStatusChange={handleStatusChange} />
               ))}
             </SortableContext>
           </div>
@@ -219,7 +217,7 @@ export default function TestRequests() {
             </div>
             <SortableContext items={getTestsByStatus("completed").map((t) => t.id)} strategy={verticalListSortingStrategy}>
               {getTestsByStatus("completed").map((test) => (
-                <TestCard key={test.id} test={test} />
+                <TestCard key={test.id} test={test} onStatusChange={handleStatusChange} />
               ))}
             </SortableContext>
           </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card } from "@patient/components/ui/card";
 import { Switch } from "@patient/components/ui/switch";
 import { Badge } from "@patient/components/ui/badge";
@@ -7,6 +7,7 @@ import { Bell, Clock, AlertTriangle } from "lucide-react";
 import medicineTablet from "@patient/assets/medicine-tablet.png";
 import medicineCapsule from "@patient/assets/medicine-capsule.png";
 import medicineSyrup from "@patient/assets/medicine-syrup.png";
+import { usePatientMedicines } from "@patient/hooks/usePatientMedicines";
 
 interface MedicineDetail {
   id: string;
@@ -23,7 +24,8 @@ interface MedicineDetail {
 }
 
 const Medicines = () => {
-  const [medicines, setMedicines] = useState<MedicineDetail[]>([
+  // baseline mock medicines (ensures immediate UI)
+  const mockMedicines = useMemo<MedicineDetail[]>(() => ([
     {
       id: "1",
       name: "Paracetamol",
@@ -61,14 +63,12 @@ const Medicines = () => {
       startDate: "2025-11-03",
       endDate: "2025-11-08",
     },
-  ]);
+  ]), []);
 
-  const toggleReminder = (id: string) => {
-    setMedicines(prev =>
-      prev.map(med =>
-        med.id === id ? { ...med, remindersEnabled: !med.remindersEnabled } : med
-      )
-    );
+  const { medicines, updateReminder } = usePatientMedicines(mockMedicines);
+
+  const toggleReminder = (id: string, next: boolean) => {
+    updateReminder(id, next);
   };
 
   return (
@@ -134,8 +134,8 @@ const Medicines = () => {
                         <span className="text-sm font-medium text-foreground">Reminders</span>
                       </div>
                       <Switch
-                        checked={medicine.remindersEnabled}
-                        onCheckedChange={() => toggleReminder(medicine.id)}
+                        checked={!!medicine.remindersEnabled}
+                        onCheckedChange={(checked) => toggleReminder(medicine.id, checked)}
                       />
                     </div>
                   </div>

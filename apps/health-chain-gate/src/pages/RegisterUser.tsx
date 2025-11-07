@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@gate/components/ui/button";
-import { Card } from "@gate/components/ui/card";
-import { Input } from "@gate/components/ui/input";
-import { Label } from "@gate/components/ui/label";
-import { Checkbox } from "@gate/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@gate/components/ui/radio-group";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@gate/components/ui/accordion";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@gate/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Stethoscope, UserPlus, Eye, EyeOff, ArrowLeft, Upload, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import FileDrop from "./_FileDrop";
-import { useToast } from "@gate/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 type Role = {
   id: string;
@@ -127,16 +127,16 @@ const RegisterUser = () => {
 
   // helpers
   const attachPreviews = (files: File[]): FileWithPreview[] => files.map((f) => Object.assign(f, { preview: URL.createObjectURL(f) }));
-  const onDrop = (setter: (files: FileWithPreview[]) => void) => (e: React.DragEvent<HTMLDivElement>) => {
+  const onDrop = (setter: React.Dispatch<React.SetStateAction<FileWithPreview[]>>) => (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files || []);
     setter((prev) => [...prev, ...attachPreviews(files)]);
   };
-  const onPick = (setter: (files: FileWithPreview[]) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPick = (setter: React.Dispatch<React.SetStateAction<FileWithPreview[]>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setter((prev) => [...prev, ...attachPreviews(files)]);
   };
-  const removeAt = (setter: (files: FileWithPreview[]) => void, idx: number) => setter((prev) => prev.filter((_, i) => i !== idx));
+  const removeAt = (setter: React.Dispatch<React.SetStateAction<FileWithPreview[]>>, idx: number) => setter((prev) => prev.filter((_, i) => i !== idx));
 
   // draft load/save
   useEffect(() => {
@@ -332,7 +332,7 @@ const RegisterUser = () => {
                       <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="doctor-specialization">Doctor Specialization *</Label>
-                          <Select value={doctorSpecialization} onValueChange={setDoctorSpecialization}>
+                          <Select value={doctorSpecialization || ""} onValueChange={(v) => setDoctorSpecialization(v || "")}>
                             <SelectTrigger id="doctor-specialization" aria-label="Select specialization" className="h-11 text-base">
                               <SelectValue placeholder="e.g., Cardiology, General Medicine" />
                             </SelectTrigger>
@@ -345,7 +345,7 @@ const RegisterUser = () => {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="doctor-experience">Years of Experience *</Label>
-                          <Select value={doctorExperience} onValueChange={setDoctorExperience}>
+                          <Select value={doctorExperience || ""} onValueChange={(v) => setDoctorExperience(v || "")}>
                             <SelectTrigger id="doctor-experience" aria-label="Select years of experience" className="h-11 text-base">
                               <SelectValue placeholder="Select range (5-year buckets)" />
                             </SelectTrigger>

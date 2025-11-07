@@ -8,9 +8,15 @@ import { HospitalDetailsSection } from "@seva/components/registration/HospitalDe
 import { ClinicalDetailsSection } from "@seva/components/registration/ClinicalDetailsSection";
 import { FollowUpSection } from "@seva/components/registration/FollowUpSection";
 import { RegistrationSuccessModal } from "@seva/components/registration/RegistrationSuccessModal";
+import { useSubEntry } from "../../../../src/contexts/SubEntryContext";
+import { useAuth } from "../../../../src/contexts/AuthContext";
+import { addRow, paths } from "../../../../src/lib/db";
+import { getNextToken } from "../../../../src/lib/tokenService";
 
 const PatientRegistration = () => {
   const { toast } = useToast();
+  const { currentEntity, currentSubEntry } = useSubEntry();
+  const { user } = useAuth();
   const [tokenNumber, setTokenNumber] = useState("");
   const [department, setDepartment] = useState("General Medicine");
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
@@ -44,19 +50,32 @@ const PatientRegistration = () => {
 
   // Auto-generate token and UHID on component mount
   useEffect(() => {
-    const today = new Date();
-    const token = `OPD${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-    const uhid = `UH${today.getFullYear()}${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
+    const loadInitialToken = async () => {
+      const entityId = currentEntity?.id ?? user?.entityId;
+      const subEntryId = currentSubEntry?.id ?? user?.subEntryId;
+      if (entityId && subEntryId) {
+        try {
+          const token = await getNextToken(entityId, subEntryId);
+          setTokenNumber(token);
+        } catch (e) {
+          // Fallback to timestamp-based token
+          const today = new Date();
+          const token = `OPD${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+          setTokenNumber(token);
+        }
+      }
+    };
+    loadInitialToken();
+
+    const uhid = `UH${new Date().getFullYear()}${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
     const currentDateTime = new Date().toISOString().slice(0, 16);
-    
-    setTokenNumber(token);
     setFormData(prev => ({
       ...prev,
       uhid,
       regDateTime: currentDateTime,
       assessmentDateTime: currentDateTime,
     }));
-  }, []);
+  }, [currentEntity, currentSubEntry, user]);
 
   const handleFormChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -110,10 +129,45 @@ const PatientRegistration = () => {
     return true;
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!validateForm()) return;
 
-    // Mock registration
+    // Create/append to live queue in Firestore (entity/subEntry scoped)
+    try {
+      const entityId = currentEntity?.id ?? user?.entityId;
+      const subEntryId = currentSubEntry?.id ?? user?.subEntryId;
+      if (entityId && subEntryId) {
+        // Use transaction-based token service for race-condition safety
+        const finalToken = tokenNumber || await getNextToken(entityId, subEntryId);
+        if (!tokenNumber) {
+          setTokenNumber(finalToken);
+        }
+
+        const queuePath = paths.receptionQueue(entityId, subEntryId);
+        await addRow(queuePath, {
+          token: finalToken,
+          patientId: formData.uhid,
+          patientName: formData.name,
+          patientAge: Number(formData.age) || undefined,
+          gender: formData.gender,
+          reason: formData.symptoms,
+          department,
+          doctor: formData.doctor,
+          createdAt: Date.now(),
+        });
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("[registration] queue write failed", e);
+      toast({
+        title: "Registration Error",
+        description: "Failed to add patient to queue. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Mock registration payload for success modal
     const regData = {
       uhid: formData.uhid,
       token: tokenNumber,
@@ -156,13 +210,23 @@ const PatientRegistration = () => {
     setShowFollowUpAlert(false);
   };
 
-  const handleModalClose = () => {
+  const handleModalClose = async () => {
     setShowSuccessModal(false);
     handleClearAll();
-    // Generate new token for next patient
-    const today = new Date();
-    const newToken = `OPD${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-    setTokenNumber(newToken);
+    // Generate new token for next patient using transaction service
+    const entityId = currentEntity?.id ?? user?.entityId;
+    const subEntryId = currentSubEntry?.id ?? user?.subEntryId;
+    if (entityId && subEntryId) {
+      try {
+        const newToken = await getNextToken(entityId, subEntryId);
+        setTokenNumber(newToken);
+      } catch (e) {
+        // Fallback
+        const today = new Date();
+        const newToken = `OPD${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+        setTokenNumber(newToken);
+      }
+    }
   };
 
   return (

@@ -2,27 +2,39 @@ import { useState, useEffect } from "react";
 import { Mic, MicOff, Loader2, Plus, Trash2, Edit } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@doctor/components/ui/card";
-import { Button } from "@doctor/components/ui/button";
-import { Badge } from "@doctor/components/ui/badge";
-import { Input } from "@doctor/components/ui/input";
-import { Label } from "@doctor/components/ui/label";
-import { Textarea } from "@doctor/components/ui/textarea";
+import { useAuth } from "@shared/contexts/AuthContext";
+import { useSubEntry } from "@shared/contexts/SubEntryContext";
+import { createConsultation, createPrescription, createLabOrder } from "@shared/lib/doctorActions";
+import { notifyByRole, notifyError } from "@shared/lib/notifications";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@doctor/components/ui/select";
-import { Checkbox } from "@doctor/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@doctor/components/ui/radio-group";
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function ActiveConsultation() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const { currentEntity } = useSubEntry();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [symptoms, setSymptoms] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
+  const [advice, setAdvice] = useState("Rest, drink fluids, avoid oily food");
+  const [followUpDate, setFollowUpDate] = useState("2025-11-06");
+  const [aiTranscript, setAiTranscript] = useState("");
   const [medicines, setMedicines] = useState([
     {
       id: "1",
@@ -31,6 +43,9 @@ export default function ActiveConsultation() {
       food: "after",
       duration: 5,
       quantity: 15,
+      drugId: "drug-1",
+      dosage: "500mg",
+      frequency: "3 times daily",
     },
   ]);
 
@@ -59,6 +74,10 @@ export default function ActiveConsultation() {
     toast.info("AI listening stopped", {
       description: `Recorded ${recordingTime} seconds`,
     });
+    // Simulate AI transcript generation
+    setAiTranscript(`AI-generated transcript from ${recordingTime} seconds of consultation...`);
+    if (!symptoms) setSymptoms("Patient reports: [AI-generated from transcript]");
+    if (!diagnosis) setDiagnosis("[AI-suggested diagnosis]");
   };
 
   const handleAddMedicine = () => {
@@ -76,13 +95,66 @@ export default function ActiveConsultation() {
     });
   };
 
-  const handleSaveAndSign = () => {
-    toast.success("Prescription saved successfully", {
-      description: "Patient will receive prescription via SMS",
-    });
-    setTimeout(() => {
-      navigate("/completed");
-    }, 1500);
+  const handleSaveAndSign = async () => {
+    const entityId = currentEntity?.id ?? user?.entityId;
+    const doctorId = user?.id;
+    
+    if (!entityId || !doctorId) {
+      notifyError("Save Consultation", new Error("Entity or doctor ID missing"));
+      return;
+    }
+
+    if (!patient?.id) {
+      notifyError("Save Consultation", new Error("Patient ID missing"));
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const visitId = patient.id;
+
+      // Create consultation record
+      await createConsultation(entityId, doctorId, {
+        visitId,
+        patientId: patient.id,
+        notes: `${symptoms}\n\nAdvice: ${advice}`,
+        diagnosis: diagnosis || baseProblem,
+        diagnosisCodes: diagnosis ? [diagnosis] : undefined,
+        aiTranscript: aiTranscript || (isRecording ? `AI transcript from ${recordingTime}s recording` : undefined),
+      });
+
+      // Create prescription if medicines exist
+      if (medicines.length > 0) {
+        const prescriptionItems = medicines.map(med => ({
+          drugId: med.drugId || `drug-${med.id}`,
+          drugName: med.name,
+          dosage: med.dosage || med.name.split(" ")[1] || "500mg",
+          frequency: med.frequency || `${med.timing.length} times daily`,
+          duration: `${med.duration} days`,
+          notes: `${med.food === "after" ? "After" : "Before"} food`,
+        }));
+
+        await createPrescription(
+          entityId,
+          patient.id,
+          visitId,
+          prescriptionItems,
+          doctorId,
+          user?.name || "Dr. User"
+        );
+      }
+
+      notifyByRole.doctor.consultationSaved(patient.name);
+      
+      setTimeout(() => {
+        navigate("/doctor/completed");
+      }, 1500);
+    } catch (error) {
+      console.error("[doctor] Save failed:", error);
+      notifyError("Save Consultation", error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const routePatient = (location.state as any)?.patient;
@@ -211,6 +283,8 @@ export default function ActiveConsultation() {
                   id="symptoms"
                   placeholder="AI will populate, you can edit freely"
                   className="mt-1.5"
+                  value={symptoms}
+                  onChange={(e) => setSymptoms(e.target.value)}
                 />
               </div>
 
@@ -218,21 +292,34 @@ export default function ActiveConsultation() {
                 <Label htmlFor="diagnosis">
                   Diagnosis <Badge variant="secondary" className="ml-2 text-xs">AI generated</Badge>
                 </Label>
-                <Textarea id="diagnosis" placeholder="AI will suggest here; edit as needed" className="mt-1.5" />
+                <Textarea 
+                  id="diagnosis" 
+                  placeholder="AI will suggest here; edit as needed" 
+                  className="mt-1.5"
+                  value={diagnosis}
+                  onChange={(e) => setDiagnosis(e.target.value)}
+                />
               </div>
 
               <div>
                 <Label htmlFor="advice">Advice</Label>
                 <Textarea
                   id="advice"
-                  defaultValue="Rest, drink fluids, avoid oily food"
+                  value={advice}
+                  onChange={(e) => setAdvice(e.target.value)}
                   className="mt-1.5"
                 />
               </div>
 
               <div>
                 <Label htmlFor="followup">Follow-up Date</Label>
-                <Input type="date" id="followup" className="mt-1.5" defaultValue="2025-11-06" />
+                <Input 
+                  type="date" 
+                  id="followup" 
+                  className="mt-1.5" 
+                  value={followUpDate}
+                  onChange={(e) => setFollowUpDate(e.target.value)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -349,10 +436,31 @@ export default function ActiveConsultation() {
                 <Button variant="outline" className="flex-1" onClick={handlePreviewPrescription}>
                   Preview Prescription
                 </Button>
-                <Button className="flex-1" onClick={handleSaveAndSign}>
-                  Save & Sign
+                <Button className="flex-1" onClick={handleSaveAndSign} disabled={saving}>
+                  {saving ? "Saving..." : "Save & Sign"}
                 </Button>
-                <Button variant="secondary" className="flex-1" onClick={() => navigate('/lab-requests')}>
+                <Button 
+                  variant="secondary" 
+                  className="flex-1" 
+                  onClick={async () => {
+                    const entityId = currentEntity?.id ?? user?.entityId;
+                    const doctorId = user?.id;
+                    if (!entityId || !doctorId || !patient?.id) {
+                      notifyError("Order Lab Test", new Error("Missing required IDs"));
+                      return;
+                    }
+                    try {
+                      const testType = prompt("Enter test type (e.g., Complete Blood Count):");
+                      if (testType) {
+                        await createLabOrder(entityId, patient.id, doctorId, testType);
+                        notifyByRole.doctor.labOrdered(testType);
+                        navigate("/doctor/lab-requests");
+                      }
+                    } catch (error) {
+                      notifyError("Order Lab Test", error);
+                    }
+                  }}
+                >
                   Order Lab Test
                 </Button>
               </div>

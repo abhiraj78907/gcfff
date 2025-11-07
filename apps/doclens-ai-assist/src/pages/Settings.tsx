@@ -1,9 +1,10 @@
+import { useState, useEffect } from "react";
 import { Bell, Globe, Moon, FileSignature, Upload } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@doctor/components/ui/card";
-import { Button } from "@doctor/components/ui/button";
-import { Label } from "@doctor/components/ui/label";
-import { Switch } from "@doctor/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@doctor/components/ui/radio-group";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import {
   Select,
@@ -11,13 +12,64 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@doctor/components/ui/select";
+} from "@/components/ui/select";
+import { useAuth } from "@shared/contexts/AuthContext";
+import { upsertById } from "@shared/lib/db";
 
 export default function Settings() {
-  const handleSaveChanges = () => {
+  const { user } = useAuth();
+  
+  // Initialize with default values - never undefined
+  const [transcriptionLanguage, setTranscriptionLanguage] = useState<string>(() => {
+    // Try to load from localStorage or use default
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("transcriptionLanguage") || "hindi";
+    }
+    return "hindi";
+  });
+  const [prescriptionTemplate, setPrescriptionTemplate] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("prescriptionTemplate") || "standard";
+    }
+    return "standard";
+  });
+  
+  // Load settings from Firestore user profile on mount
+  useEffect(() => {
+    if (user?.id) {
+      // Settings would be stored in user profile
+      // For now, we use localStorage as fallback
+      // In future, can fetch from user profile
+    }
+  }, [user]);
+  
+  const handleSaveChanges = async () => {
+    try {
+      // Save to localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("transcriptionLanguage", transcriptionLanguage);
+        localStorage.setItem("prescriptionTemplate", prescriptionTemplate);
+      }
+      
+      // Save to Firestore user profile if user is logged in
+      if (user?.id) {
+        await upsertById("users", user.id, {
+          settings: {
+            transcriptionLanguage,
+            prescriptionTemplate,
+          },
+        });
+      }
+      
     toast.success("Settings saved successfully", {
       description: "Your preferences have been updated",
     });
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      toast.error("Failed to save settings", {
+        description: "Please try again",
+      });
+    }
   };
 
   const handleResetToDefault = () => {
@@ -60,7 +112,13 @@ export default function Settings() {
 
           <div className="space-y-2">
             <Label>Transcription Language</Label>
-            <Select defaultValue="hindi">
+            <Select value={transcriptionLanguage} onValueChange={(value) => {
+              console.log("[Settings] Transcription language changed:", value);
+              setTranscriptionLanguage(value);
+              if (typeof window !== "undefined") {
+                localStorage.setItem("transcriptionLanguage", value);
+              }
+            }}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -153,7 +211,13 @@ export default function Settings() {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label>Default Prescription Template</Label>
-            <Select defaultValue="standard">
+            <Select value={prescriptionTemplate} onValueChange={(value) => {
+              console.log("[Settings] Prescription template changed:", value);
+              setPrescriptionTemplate(value);
+              if (typeof window !== "undefined") {
+                localStorage.setItem("prescriptionTemplate", value);
+              }
+            }}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

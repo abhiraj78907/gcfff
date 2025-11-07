@@ -7,7 +7,13 @@ export const SubEntrySwitcher = () => {
   return (
     <div className="flex items-center gap-3">
       <div className="w-56">
-        <Select value={currentEntityId ?? undefined} onValueChange={setEntity}>
+        <Select 
+          value={currentEntityId || ""} 
+          onValueChange={(value) => {
+            console.log("[SubEntrySwitcher] Entity changed:", value);
+            setEntity(value);
+          }}
+        >
           <SelectTrigger aria-label="Select entity">
             <SelectValue placeholder="Select Entity" />
           </SelectTrigger>
@@ -21,7 +27,13 @@ export const SubEntrySwitcher = () => {
         </Select>
       </div>
       <div className="w-64">
-        <Select value={currentSubEntryId ?? undefined} onValueChange={setSubEntry}>
+        <Select 
+          value={currentSubEntryId || ""} 
+          onValueChange={(value) => {
+            console.log("[SubEntrySwitcher] Sub-entry changed:", value);
+            setSubEntry(value);
+          }}
+        >
           <SelectTrigger aria-label="Select sub-entry">
             <SelectValue placeholder="Select Sub-Entry" />
           </SelectTrigger>

@@ -32,7 +32,8 @@ const Login = () => {
   const { toast } = useToast();
   const { login, activeRole } = useAuth();
   const { currentEntityId, currentSubEntryId, setEntity, setSubEntry } = useSubEntry();
-  const [chosenRole, setChosenRole] = useState<UserRole | undefined>(undefined);
+  // Initialize with empty string - never undefined to avoid uncontrolled-to-controlled warning
+  const [chosenRole, setChosenRole] = useState<string>("");
   const [institutionId, setInstitutionId] = useState<string>(currentEntityId ?? "");
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -57,7 +58,7 @@ const Login = () => {
       return;
     }
     // Authenticate against demo users
-    const match = authenticateDemo({ entityId: institutionId, username, password, role: chosenRole });
+    const match = authenticateDemo({ entityId: institutionId, username, password, role: chosenRole as UserRole });
     if (!match) {
       setIsLoading(false);
       toast({ title: "Invalid credentials", description: "Please check institution, username, password, and role.", variant: "destructive" });
@@ -102,7 +103,7 @@ const Login = () => {
     const user = pool.find((u) => u.role === role);
     if (!user) return;
     setInstitutionId(entityId);
-    setChosenRole(role);
+    setChosenRole(role); // role is a string, which is compatible
     setUsername(user.username);
     setPassword(user.password);
   };
@@ -125,8 +126,9 @@ const Login = () => {
           <form onSubmit={handleLogin} className="space-y-5">
             <DemoLogin
               onAutofill={({ entityId, role, username: u, password: p }) => {
+                console.log("[Login] DemoLogin autofill:", { entityId, role, username: u });
                 setInstitutionId(entityId);
-                setChosenRole(role);
+                setChosenRole(role); // role is a string (UserRole), compatible with chosenRole state
                 setUsername(u);
                 setPassword(p);
               }}
@@ -139,7 +141,13 @@ const Login = () => {
 
             <div className="space-y-2">
               <Label>Role</Label>
-              <Select value={chosenRole} onValueChange={(v) => setChosenRole(v as UserRole)}>
+              <Select 
+                value={chosenRole || ""} 
+                onValueChange={(v) => {
+                  console.log("[Login] Role changed:", v);
+                  setChosenRole(v || "");
+                }}
+              >
                 <SelectTrigger aria-label="Select role for this session" className="h-11 text-base">
                   <SelectValue placeholder="Auto-detect or choose role" />
                 </SelectTrigger>

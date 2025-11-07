@@ -1,8 +1,9 @@
 import { Clock, Users, TestTube, TrendingUp, Play, BarChart3 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@doctor/components/ui/card";
-import { Button } from "@doctor/components/ui/button";
-import { Badge } from "@doctor/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useDoctorQueue } from "@shared/hooks/useDoctorQueue";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
 const stats = [
@@ -12,38 +13,21 @@ const stats = [
   { label: "Avg Time", value: "45 min", icon: TrendingUp, trend: "-5 min" },
 ];
 
-const patientsInQueue = [
-  {
-    token: "13",
-    name: "Ramesh Kumar",
-    age: "45M",
-    id: "VIMS-2025-12345",
-    symptoms: "Fever since 2 days, headache, body pain",
-    waiting: "25 minutes",
-    registered: "9:45 AM",
-    priority: "high",
-  },
-  {
-    token: "14",
-    name: "Sita Devi",
-    age: "38F",
-    id: "VIMS-2025-12344",
-    symptoms: "Cough, cold",
-    waiting: "15 minutes",
-    registered: "10:00 AM",
-    priority: "medium",
-  },
-  {
-    token: "15",
-    name: "Abdul Khan",
-    age: "52M",
-    id: "VIMS-2025-12346",
-    symptoms: "Diabetes follow-up",
-    waiting: "8 minutes",
-    registered: "10:15 AM",
-    priority: "low",
-  },
-];
+function formatQueueItem(apt: any, index: number) {
+  // Derive display fields safely from appointment doc
+  const waitingMins = Math.max(0, Math.round((Date.now() - (apt.createdAt ?? Date.now())) / 60000));
+  return {
+    token: String(apt.token ?? index + 1),
+    name: apt.patientName ?? "Patient",
+    age: apt.patientAge ? String(apt.patientAge) : "",
+    id: apt.visitId ?? apt.id ?? "",
+    symptoms: apt.reason ?? "",
+    waiting: `${waitingMins} minutes`,
+    registered: apt.registeredAtTime ?? "",
+    priority: waitingMins > 20 ? "high" : waitingMins > 10 ? "medium" : "low",
+    raw: apt,
+  };
+}
 
 const getPriorityColor = (waiting: string) => {
   const minutes = parseInt(waiting);
@@ -65,13 +49,15 @@ const consultationData = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { queue, loading } = useDoctorQueue();
+  const patientsInQueue = (queue ?? []).map((apt, idx) => formatQueueItem(apt, idx));
   return (
     <div className="space-y-6">
       {/* Patients in Queue - Top Priority */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-foreground">Patients in Queue</h3>
-          <Badge variant="secondary">{patientsInQueue.length} waiting</Badge>
+          <Badge variant="secondary">{loading ? "Loading..." : `${patientsInQueue.length} waiting`}</Badge>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

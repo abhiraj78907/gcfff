@@ -102,11 +102,11 @@ export const MedicineCard = ({
 
           {/* Action Buttons */}
           {status === "due" && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-col sm:flex-row pt-2 border-t border-border">
               <Button
                 onClick={onMarkTaken}
-                className="flex-1 bg-success hover:bg-success/90 text-success-foreground"
-                size="lg"
+                className="sm:flex-1 w-full sm:w-auto bg-success hover:bg-success/90 text-success-foreground h-9 md:h-11 text-xs md:text-sm"
+                size="sm"
               >
                 <Check className="w-4 h-4 mr-2" />
                 Mark as Taken
@@ -114,7 +114,8 @@ export const MedicineCard = ({
               <Button
                 onClick={onSnooze}
                 variant="outline"
-                size="lg"
+                size="sm"
+                className="w-full sm:w-auto h-9 md:h-11 text-xs md:text-sm"
               >
                 Snooze 30m
               </Button>

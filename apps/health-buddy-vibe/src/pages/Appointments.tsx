@@ -1,8 +1,9 @@
-import { Card } from "@patient/components/ui/card";
-import { Button } from "@patient/components/ui/button";
-import { Badge } from "@patient/components/ui/badge";
+import { Card } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
 import { Calendar, Clock, User, MapPin, Phone } from "lucide-react";
-import { Separator } from "@patient/components/ui/separator";
+import { Separator } from "../components/ui/separator";
+import { usePatientAppointments } from "../hooks/usePatientAppointments";
 
 interface Appointment {
   id: string;
@@ -16,7 +17,7 @@ interface Appointment {
 }
 
 const Appointments = () => {
-  const appointments: Appointment[] = [
+  const mockAppointments: Appointment[] = [
     {
       id: "1",
       date: "2025-11-05",
@@ -49,6 +50,7 @@ const Appointments = () => {
     },
   ];
 
+  const { appointments } = usePatientAppointments(mockAppointments);
   const upcomingAppointments = appointments.filter(a => a.status === "upcoming");
   const pastAppointments = appointments.filter(a => a.status === "completed");
 

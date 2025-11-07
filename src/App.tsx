@@ -21,6 +21,7 @@ import Welcome from "./pages/welcome";
 import { RegisterEntity, RegisterUser, Login as GateLogin, EntitySuccess } from "./pages/onboard";
 import { DoctorDashboard, DoctorActiveConsultation, DoctorCompletedConsultations, DoctorLabRequests, DoctorPatientHistory, DoctorSettings } from "./pages/doctor";
 import { AuthProvider } from "./contexts/AuthContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import { RoleRoute } from "./components/RoleRoute";
 import PharmacistRoutes from "./pages/pharmacy";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -33,6 +34,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <LanguageProvider>
         <AuthProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
@@ -118,6 +120,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
         </AuthProvider>
+        </LanguageProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </ErrorBoundary>

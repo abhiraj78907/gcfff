@@ -1,13 +1,14 @@
-import { Toaster } from "@doctor/components/ui/toaster";
-import { Toaster as Sonner } from "@doctor/components/ui/sonner";
-import { TooltipProvider } from "@doctor/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { SidebarProvider } from "@doctor/components/ui/sidebar";
-import { DoctorSidebar } from "@doctor/components/DoctorSidebar";
-import { DoctorHeader } from "@doctor/components/DoctorHeader";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { DoctorSidebar } from "@/components/DoctorSidebar";
+import { DoctorHeader } from "@/components/DoctorHeader";
 import Dashboard from "./pages/Dashboard";
 import ActiveConsultation from "./pages/ActiveConsultation";
+import ActiveConsultationAI from "./pages/ActiveConsultationAI";
 import CompletedConsultations from "./pages/CompletedConsultations";
 import LabRequests from "./pages/LabRequests";
 import PatientHistory from "./pages/PatientHistory";
@@ -44,7 +45,8 @@ const App = () => (
                       <main className="flex-1 min-h-0 overflow-y-auto bg-background p-4 md:p-6">
                         <Routes>
                           <Route path="/" element={<Dashboard />} />
-                          <Route path="/consultation" element={<ActiveConsultation />} />
+                          <Route path="/consultation" element={<ActiveConsultationAI />} />
+                          <Route path="/consultation/legacy" element={<ActiveConsultation />} />
                           <Route path="/completed" element={<CompletedConsultations />} />
                           <Route path="/lab-requests" element={<LabRequests />} />
                           <Route path="/patient-history" element={<PatientHistory />} />

@@ -3,6 +3,7 @@ import { Button } from "@patient/components/ui/button";
 import { Badge } from "@patient/components/ui/badge";
 import { Download, Share2, Eye, Calendar, User, Building2 } from "lucide-react";
 import { Separator } from "@patient/components/ui/separator";
+import { usePatientPrescriptions } from "../hooks/usePatientPrescriptions";
 
 interface Prescription {
   id: string;
@@ -19,7 +20,7 @@ interface Prescription {
 }
 
 const Prescriptions = () => {
-  const prescriptions: Prescription[] = [
+  const mockPrescriptions: Prescription[] = [
     {
       id: "1",
       date: "2025-11-01",
@@ -46,6 +47,7 @@ const Prescriptions = () => {
     },
   ];
 
+  const { prescriptions } = usePatientPrescriptions(mockPrescriptions);
   const currentPrescriptions = prescriptions.filter(p => p.status === "current");
   const pastPrescriptions = prescriptions.filter(p => p.status === "past");
 

@@ -26,17 +26,35 @@ export function DemoLogin({ onAutofill }: Props) {
   const debug = (import.meta as any).env?.VITE_DEBUG_DEMO_LOGIN === "true";
 
   const entities = useMemo(() => Object.keys(demoUsersByEntity).map((id) => ({ id, name: entityName[id] ?? id })), []);
-  const [selectedEntity, setSelectedEntity] = useState<string>("");
-  const [selectedRole, setSelectedRole] = useState<UserRole | "">("");
-
-  useEffect(() => {
-    try {
-      const e = window.localStorage.getItem("demo:lastEntity") || "";
-      const r = window.localStorage.getItem("demo:lastRole") as UserRole | null;
-      if (e) setSelectedEntity(e);
-      if (r) setSelectedRole(r);
-    } catch {}
-  }, []);
+  
+  // Initialize with localStorage values immediately to avoid uncontrolled state
+  const [selectedEntity, setSelectedEntity] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return window.localStorage.getItem("demo:lastEntity") || "";
+      } catch {
+        return "";
+      }
+    }
+    return "";
+  });
+  
+  // Always use controlled mode - never undefined to avoid uncontrolled-to-controlled warning
+  // Initialize with empty string, which is always defined (controlled mode)
+  const [selectedRole, setSelectedRole] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedRole = window.localStorage.getItem("demo:lastRole");
+        // Only use saved role if it's a valid UserRole
+        if (savedRole && ALL_ROLES.includes(savedRole as UserRole)) {
+          return savedRole;
+        }
+      } catch {
+        // Ignore errors
+      }
+    }
+    return ""; // Always use empty string (never undefined) for controlled mode
+  });
 
   const rolesForEntity: UserRole[] = useMemo(() => {
     if (!selectedEntity) return [];
@@ -45,6 +63,20 @@ export function DemoLogin({ onAutofill }: Props) {
     return roles.sort((a, b) => ALL_ROLES.indexOf(a) - ALL_ROLES.indexOf(b));
   }, [selectedEntity]);
 
+  // Reset role when entity changes and role is no longer valid
+  useEffect(() => {
+    if (selectedEntity && selectedRole && rolesForEntity.length > 0) {
+      // If current role is not in the new entity's roles, reset it
+      if (!rolesForEntity.includes(selectedRole as UserRole)) {
+        console.log("[DemoLogin] Role no longer valid for entity, resetting:", selectedRole);
+        setSelectedRole("");
+      }
+    } else if (selectedEntity && !selectedRole && rolesForEntity.length === 0) {
+      // If entity changes and no roles available yet, ensure role is empty
+      setSelectedRole("");
+    }
+  }, [selectedEntity, rolesForEntity, selectedRole]);
+
   useEffect(() => {
     if (!selectedEntity || !selectedRole) return;
     const pool = demoUsersByEntity[selectedEntity] || [];
@@ -52,7 +84,7 @@ export function DemoLogin({ onAutofill }: Props) {
     if (!user) return;
     const cb = () => {
       if (debug) console.debug("[DemoLogin] autofill", { selectedEntity, selectedRole, username: user.username });
-      onAutofill({ entityId: selectedEntity, role: selectedRole, username: user.username, password: user.password });
+      onAutofill({ entityId: selectedEntity, role: selectedRole as UserRole, username: user.username, password: user.password });
       try {
         window.localStorage.setItem("demo:lastEntity", selectedEntity);
         window.localStorage.setItem("demo:lastRole", selectedRole);
@@ -72,7 +104,12 @@ export function DemoLogin({ onAutofill }: Props) {
         <div className="grid sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label htmlFor="demo-entity">Institution</Label>
-            <Select value={selectedEntity} onValueChange={setSelectedEntity}>
+            <Select value={selectedEntity} onValueChange={(v) => {
+              console.log("[DemoLogin] Entity changed:", v);
+              setSelectedEntity(v);
+              // Reset role when entity changes - use empty string for controlled mode
+              setSelectedRole("");
+            }}>
               <SelectTrigger id="demo-entity" aria-label="Select demo institution">
                 <SelectValue placeholder="Choose institution" />
               </SelectTrigger>
@@ -85,7 +122,22 @@ export function DemoLogin({ onAutofill }: Props) {
           </div>
           <div className="space-y-1">
             <Label htmlFor="demo-role">Role</Label>
-            <Select value={selectedRole || undefined} onValueChange={(v) => setSelectedRole(v as UserRole)} disabled={!selectedEntity}>
+            <Select 
+              key={`role-select-${selectedEntity}-${rolesForEntity.length}`}
+              value={selectedRole && rolesForEntity.includes(selectedRole as UserRole) ? selectedRole : ""} 
+              onValueChange={(v) => {
+                console.log("[DemoLogin] Role changed:", v, {
+                  previousValue: selectedRole,
+                  newValue: v,
+                  rolesForEntity: rolesForEntity,
+                  isValid: rolesForEntity.includes(v as UserRole),
+                });
+                // Always set to a valid string value (controlled mode)
+                // Ensure value is never undefined
+                setSelectedRole(v || "");
+              }} 
+              disabled={!selectedEntity || rolesForEntity.length === 0}
+            >
               <SelectTrigger id="demo-role" aria-label="Select demo role">
                 <SelectValue placeholder={selectedEntity ? "Choose role" : "Select institution first"} />
               </SelectTrigger>

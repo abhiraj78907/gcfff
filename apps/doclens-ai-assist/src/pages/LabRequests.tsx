@@ -1,8 +1,9 @@
+import { useState, useMemo } from "react";
 import { Plus, Search, Download, Clock, CheckCircle, AlertCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@doctor/components/ui/card";
-import { Button } from "@doctor/components/ui/button";
-import { Input } from "@doctor/components/ui/input";
-import { Badge } from "@doctor/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Select,
@@ -10,35 +11,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@doctor/components/ui/select";
+} from "@/components/ui/select";
+import { useLabRequests } from "@shared/hooks/useLabRequests";
+import { Loader2 } from "lucide-react";
 
-const labTests = [
-  {
-    id: "VIMS-2025-12345",
-    patient: "Ramesh Kumar",
-    tests: ["CBC", "Blood Sugar (Fasting)"],
-    ordered: "3 Nov 2025, 10:00 AM",
-    status: "processing",
-    expected: "4 Nov 2025, 2:00 PM",
-  },
-  {
-    id: "VIMS-2025-12344",
-    patient: "Sita Devi",
-    tests: ["Urine Routine", "CBC"],
-    ordered: "3 Nov 2025, 9:30 AM",
-    status: "completed",
-    completed: "3 Nov 2025, 11:30 AM",
-    pathologist: "Dr. Rao",
-  },
-  {
-    id: "VIMS-2025-12346",
-    patient: "Abdul Khan",
-    tests: ["HbA1c", "Lipid Profile"],
-    ordered: "3 Nov 2025, 10:30 AM",
-    status: "pending",
-    expected: "4 Nov 2025, 10:00 AM",
-  },
-];
+// Mock data removed - using real Firebase data via useLabRequests hook
 
 const getStatusConfig = (status: string) => {
   switch (status) {
@@ -54,11 +31,48 @@ const getStatusConfig = (status: string) => {
 };
 
 export default function LabRequests() {
+  // Initialize with default - never undefined
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  
+  // Use real Firebase data
+  const { requests, loading, updateStatus } = useLabRequests();
+  
+  // Filter and search lab requests
+  const filteredRequests = useMemo(() => {
+    let filtered = requests;
+    
+    // Filter by status
+    if (filterStatus !== "all") {
+      filtered = filtered.filter(req => req.status === filterStatus);
+    }
+    
+    // Search by patient name or test type
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(req => 
+        (req.patientName?.toLowerCase().includes(query)) ||
+        (req.testType?.toLowerCase().includes(query)) ||
+        (req.patientId?.toLowerCase().includes(query))
+      );
+    }
+    
+    return filtered;
+  }, [requests, filterStatus, searchQuery]);
+  
+  // Calculate stats from real data
+  const stats = useMemo(() => {
+    const pending = requests.filter(r => r.status === "ordered" || r.status === "pending").length;
+    const processing = requests.filter(r => r.status === "in_progress" || r.status === "processing").length;
+    const completed = requests.filter(r => r.status === "completed").length;
+    return { pending, processing, completed };
+  }, [requests]);
+  
   const handleOrderNewTest = () => {
     toast.info("Opening test order form");
   };
 
-  const handleViewResults = (patientName: string) => {
+  const handleViewResults = async (requestId: string, patientName: string) => {
     toast.success(`Opening lab results for ${patientName}`);
   };
 
@@ -70,12 +84,24 @@ export default function LabRequests() {
     toast.success(`Lab results added to ${patientName}'s prescription`);
   };
 
-  const handleTrackStatus = (patientName: string) => {
-    toast.info(`Tracking lab test status for ${patientName}`);
+  const handleTrackStatus = async (requestId: string, status: string) => {
+    try {
+      await updateStatus(requestId, status as any);
+      toast.success("Status updated successfully");
+    } catch (error) {
+      toast.error("Failed to update status");
+      console.error(error);
+    }
   };
 
-  const handleCancelTest = (patientName: string) => {
-    toast.error(`Test cancelled for ${patientName}`);
+  const handleCancelTest = async (requestId: string, patientName: string) => {
+    try {
+      await updateStatus(requestId, "cancelled" as any);
+      toast.success(`Test cancelled for ${patientName}`);
+    } catch (error) {
+      toast.error("Failed to cancel test");
+      console.error(error);
+    }
   };
   return (
     <div className="space-y-6">
@@ -100,7 +126,7 @@ export default function LabRequests() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">1</div>
+            <div className="text-2xl font-bold text-foreground">{stats.pending}</div>
           </CardContent>
         </Card>
         <Card>
@@ -111,7 +137,7 @@ export default function LabRequests() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">1</div>
+            <div className="text-2xl font-bold text-warning">{stats.processing}</div>
           </CardContent>
         </Card>
         <Card>
@@ -122,7 +148,7 @@ export default function LabRequests() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">1</div>
+            <div className="text-2xl font-bold text-success">{stats.completed}</div>
           </CardContent>
         </Card>
       </div>
@@ -136,9 +162,14 @@ export default function LabRequests() {
               <Input
                 placeholder="Search by patient name or ID..."
                 className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select defaultValue="all">
+            <Select value={filterStatus} onValueChange={(value) => {
+              console.log("[LabRequests] Filter status changed:", value);
+              setFilterStatus(value);
+            }}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue />
               </SelectTrigger>
@@ -153,27 +184,37 @@ export default function LabRequests() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {labTests.map((test) => {
-            const statusConfig = getStatusConfig(test.status);
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Loading lab requests...</span>
+            </div>
+          ) : filteredRequests.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No lab requests found
+            </div>
+          ) : (
+            filteredRequests.map((request) => {
+              const statusConfig = getStatusConfig(request.status || "pending");
             const StatusIcon = statusConfig.icon;
             
             return (
-              <Card key={test.id} className="border border-border">
+                <Card key={request.id} className="border border-border">
                 <CardContent className="pt-6">
                   <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1 space-y-3">
                       <div className="flex items-start justify-between">
                         <div>
                           <h3 className="font-semibold text-lg text-foreground">
-                            {test.patient}
+                              {request.patientName || request.patientId || "Unknown Patient"}
                           </h3>
-                          <p className="text-sm text-muted-foreground">{test.id}</p>
+                            <p className="text-sm text-muted-foreground">{request.id}</p>
                         </div>
                         <Badge 
                           className={`ml-4 ${
-                            test.status === "completed" 
+                              request.status === "completed" 
                               ? "bg-success text-success-foreground" 
-                              : test.status === "processing"
+                                : request.status === "in_progress" || request.status === "processing"
                               ? "bg-warning text-warning-foreground"
                               : "bg-secondary text-secondary-foreground"
                           }`}
@@ -185,55 +226,47 @@ export default function LabRequests() {
 
                       <div className="space-y-2">
                         <div>
-                          <span className="text-sm text-muted-foreground">Tests Ordered:</span>
+                            <span className="text-sm text-muted-foreground">Test Type:</span>
                           <div className="flex flex-wrap gap-2 mt-1">
-                            {test.tests.map((testName, i) => (
-                              <Badge key={i} variant="outline">{testName}</Badge>
-                            ))}
+                              <Badge variant="outline">{request.testType || "N/A"}</Badge>
                           </div>
                         </div>
 
                         <div className="grid sm:grid-cols-2 gap-2 text-sm">
                           <div>
                             <span className="text-muted-foreground">Ordered:</span>
-                            <span className="ml-2 text-foreground">{test.ordered}</span>
+                              <span className="ml-2 text-foreground">
+                                {request.createdAt ? new Date(request.createdAt).toLocaleString() : "N/A"}
+                              </span>
                           </div>
-                          {test.status === "completed" ? (
+                            {request.status === "completed" && request.resultUrl ? (
                             <div>
-                              <span className="text-muted-foreground">Completed:</span>
-                              <span className="ml-2 text-foreground">{test.completed}</span>
+                                <span className="text-muted-foreground">Results Ready</span>
                             </div>
                           ) : (
                             <div>
-                              <span className="text-muted-foreground">Expected:</span>
-                              <span className="ml-2 text-foreground">{test.expected}</span>
+                                <span className="text-muted-foreground">Status:</span>
+                                <span className="ml-2 text-foreground capitalize">{request.status || "pending"}</span>
                             </div>
                           )}
-                        </div>
-
-                        {test.pathologist && (
-                          <div className="text-sm">
-                            <span className="text-muted-foreground">Pathologist:</span>
-                            <span className="ml-2 text-foreground">{test.pathologist}</span>
                           </div>
-                        )}
                       </div>
                     </div>
 
                     <div className="flex flex-col gap-2 sm:w-auto">
-                      {test.status === "completed" ? (
+                        {request.status === "completed" ? (
                         <>
                           <Button 
                             variant="default" 
                             size="sm"
-                            onClick={() => handleViewResults(test.patient)}
+                              onClick={() => handleViewResults(request.id, request.patientName || "")}
                           >
                             View Results
                           </Button>
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleDownloadPDF(test.patient)}
+                              onClick={() => handleDownloadPDF(request.patientName || "")}
                           >
                             <Download className="h-4 w-4 mr-2" />
                             Download PDF
@@ -241,7 +274,7 @@ export default function LabRequests() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleAddToPrescription(test.patient)}
+                              onClick={() => handleAddToPrescription(request.patientName || "")}
                           >
                             Add to Prescription
                           </Button>
@@ -251,7 +284,7 @@ export default function LabRequests() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleTrackStatus(test.patient)}
+                              onClick={() => handleTrackStatus(request.id, "in_progress")}
                           >
                             Track Status
                           </Button>
@@ -259,7 +292,7 @@ export default function LabRequests() {
                             variant="ghost" 
                             size="sm" 
                             className="text-critical"
-                            onClick={() => handleCancelTest(test.patient)}
+                              onClick={() => handleCancelTest(request.id, request.patientName || "")}
                           >
                             Cancel Test
                           </Button>
@@ -270,7 +303,8 @@ export default function LabRequests() {
                 </CardContent>
               </Card>
             );
-          })}
+            })
+          )}
         </CardContent>
       </Card>
     </div>

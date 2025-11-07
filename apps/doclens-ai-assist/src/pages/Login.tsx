@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@doctor/components/ui/card";
-import { Input } from "@doctor/components/ui/input";
-import { Label } from "@doctor/components/ui/label";
-import { Button } from "@doctor/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@shared/contexts/AuthContext";
 

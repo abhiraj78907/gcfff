@@ -5,11 +5,12 @@ import { Input } from "@seva/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@seva/components/ui/select";
 import { Clock, Search, User, Phone } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useSubEntry } from "../../../../src/contexts/SubEntryContext";
 import { mockVisits } from "../../../../src/lib/mocks/queue";
 import { mockPatients } from "../../../../src/lib/mocks/patients";
 import { filterBySubEntry } from "../../../../src/lib/api-utils";
+import { useReceptionQueue } from "../../../../src/hooks/useReceptionQueue";
 
 // Departments mocked for visualization
 const departments = ["General Medicine", "Cardiology", "Pediatrics", "Orthopedics"] as const;
@@ -22,10 +23,15 @@ const getWaitTimeBadge = (minutes: number) => {
 
 const Queue = () => {
   const { currentSubEntry } = useSubEntry();
+  const { queue, loading } = useReceptionQueue();
+  
+  // Initialize with default - never undefined
+  const [filterDepartment, setFilterDepartment] = useState<string>("all");
 
   const scopedVisits = useMemo(() => {
+    if (queue && queue.length > 0) return queue;
     return currentSubEntry ? filterBySubEntry(mockVisits, currentSubEntry.id) : [];
-  }, [currentSubEntry]);
+  }, [queue, currentSubEntry]);
 
   const scopedPatients = useMemo(() => {
     return currentSubEntry ? mockPatients.filter(p => p.subEntryId === currentSubEntry.id) : [];
@@ -33,17 +39,19 @@ const Queue = () => {
 
   // Combine patients and visits for queue cards
   const queueCards = useMemo(() => {
-    return scopedVisits.map(v => {
+    return scopedVisits.map((v: any, idx: number) => {
       const patient = scopedPatients.find(p => p.id === v.patientId);
+      const created = typeof v.createdAt === "number" ? v.createdAt : Date.now();
+      const waitMins = Math.max(0, Math.round((Date.now() - created) / 60000));
       return {
-        token: v.token,
-        name: patient?.name || "Patient",
-        age: patient?.age || 0,
-        gender: (patient?.gender || "").toString().toUpperCase().slice(0,1),
-        department: "General Medicine",
-        doctor: "Dr. Sharma",
-        waitTime: 10,
-        symptoms: patient?.symptoms || "",
+        token: v.token ?? idx + 1,
+        name: v.patientName || patient?.name || "Patient",
+        age: v.patientAge || patient?.age || 0,
+        gender: (v.gender || patient?.gender || "").toString().toUpperCase().slice(0,1),
+        department: v.department || "General Medicine",
+        doctor: v.doctor || "Dr. Sharma",
+        waitTime: waitMins,
+        symptoms: v.reason || patient?.symptoms || "",
       };
     });
   }, [scopedVisits, scopedPatients]);
@@ -59,7 +67,7 @@ const Queue = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold text-foreground">Today's Queue</h2>
-        <p className="text-muted-foreground">Manage active patients waiting for consultation</p>
+        <p className="text-muted-foreground">{loading ? "Loading live queue..." : "Manage active patients waiting for consultation"}</p>
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -68,7 +76,10 @@ const Queue = () => {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Search by token or patient name..." className="pl-10" />
           </div>
-          <Select>
+          <Select value={filterDepartment} onValueChange={(value) => {
+            console.log("[Queue] Department filter changed:", value);
+            setFilterDepartment(value);
+          }}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Department" />
             </SelectTrigger>

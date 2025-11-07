@@ -1,9 +1,13 @@
-import { createContext, useContext, useMemo, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import type { UserProfile, UserRole } from "@/types/entities";
+import { auth } from "../lib/firebase";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { fetchUserProfile, createUserProfile } from "../lib/userProfile";
 
 type AuthContextValue = {
   user: UserProfile | null;
   login: (payload: { roles: UserRole[]; entityId?: string | null; subEntryId?: string | null; primaryRole?: UserRole }) => void;
+  signInEmail: (email: string, password: string) => Promise<void>;
   loginAs: (roles: UserRole[]) => void; // mock login - kept for dev switcher
   logout: () => void;
   hasRole: (role: UserRole) => boolean;
@@ -27,6 +31,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const initialUser: UserProfile = storedRole ? { ...mockUserBase, roles: [storedRole], primaryRole: storedRole || undefined, entityId: storedEntity, subEntryId: storedSubEntry } : mockUserBase;
   const [user, setUser] = useState<UserProfile | null>(initialUser);
 
+  // Firebase auth listener with Firestore profile fetch
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (fbUser) => {
+      if (!fbUser) {
+        setUser(null);
+        return;
+      }
+      
+      // Try to fetch profile from Firestore
+      let profile = await fetchUserProfile(fbUser.uid);
+      
+      // If no profile exists, create one from Firebase Auth data
+      if (!profile) {
+        const newProfile: Partial<UserProfile> = {
+          name: fbUser.displayName ?? mockUserBase.name,
+          email: fbUser.email ?? mockUserBase.email,
+          roles: initialUser.roles.length > 0 ? initialUser.roles : mockUserBase.roles,
+          primaryRole: (initialUser.roles?.[0] as UserRole | undefined) ?? mockUserBase.roles[0],
+          entityId: storedEntity,
+          subEntryId: storedSubEntry,
+        };
+        await createUserProfile(fbUser.uid, newProfile);
+        profile = await fetchUserProfile(fbUser.uid);
+      }
+      
+      // Fallback to mock if Firestore fetch still fails (dev mode)
+      const next: UserProfile = profile ?? {
+        id: fbUser.uid,
+        name: fbUser.displayName ?? mockUserBase.name,
+        email: fbUser.email ?? mockUserBase.email,
+        roles: initialUser.roles.length > 0 ? initialUser.roles : mockUserBase.roles,
+        primaryRole: (initialUser.roles?.[0] as UserRole | undefined) ?? mockUserBase.roles[0],
+        entityId: storedEntity,
+        subEntryId: storedSubEntry,
+      };
+      
+      // Persist to localStorage
+      try {
+        if (next.primaryRole) window.localStorage.setItem("activeRole", next.primaryRole);
+        if (next.entityId) window.localStorage.setItem("entityId", next.entityId);
+        if (next.subEntryId) window.localStorage.setItem("subEntryId", next.subEntryId);
+      } catch {}
+      
+      setUser(next);
+    });
+    return () => unsub();
+  }, []);
+
   const value = useMemo<AuthContextValue>(() => ({
     user,
     activeRole: (user?.primaryRole as UserRole | undefined) ?? user?.roles?.[0] ?? null,
@@ -39,6 +91,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch {}
       setUser(next);
     },
+    signInEmail: async (email: string, password: string) => {
+      await signInWithEmailAndPassword(auth, email, password);
+    },
     loginAs: (roles: UserRole[]) => setUser((prev) => {
       const next: UserProfile = { ...(prev ?? mockUserBase), roles, primaryRole: roles[0] };
       try { window.localStorage.setItem("activeRole", roles[0]); } catch {}
@@ -50,7 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         window.localStorage.removeItem("entityId");
         window.localStorage.removeItem("subEntryId");
       } catch {}
-      setUser(null);
+      signOut(auth).finally(() => setUser(null));
     },
     hasRole: (role: UserRole) => Boolean(user?.roles.includes(role)),
   }), [user]);

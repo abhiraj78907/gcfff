@@ -8,6 +8,8 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  // Load env vars from project root
+  envDir: ".",
   plugins: [react()],
   resolve: {
     alias: [

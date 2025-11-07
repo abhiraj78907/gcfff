@@ -82,7 +82,13 @@ export const RoleSwitcher = () => {
 
   return (
     <div className="w-48">
-      <Select value={activeRole} onValueChange={(v) => onChange(v as UserRole)}>
+      <Select 
+        value={activeRole || ""} 
+        onValueChange={(v) => {
+          console.log("[RoleSwitcher] Role changed:", v);
+          onChange(v as UserRole);
+        }}
+      >
         <SelectTrigger aria-label="Select active role" className="aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-destructive" role="combobox">
           <SelectValue placeholder="Select Role" />
         </SelectTrigger>

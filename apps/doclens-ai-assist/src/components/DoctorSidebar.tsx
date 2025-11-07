@@ -18,7 +18,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-} from "@doctor/components/ui/sidebar";
+} from "@/components/ui/sidebar";
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: Home },

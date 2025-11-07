@@ -1,55 +1,47 @@
-import { Search, Download, FileText, Calendar } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@doctor/components/ui/card";
-import { Button } from "@doctor/components/ui/button";
-import { Input } from "@doctor/components/ui/input";
-import { Badge } from "@doctor/components/ui/badge";
+import { Search, Download, FileText, Calendar, Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@doctor/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { useState } from "react";
-
-const patientHistory = [
-  {
-    date: "3 Nov 2025",
-    doctor: "Dr. Sharma",
-    department: "General Medicine",
-    diagnosis: "Viral Fever",
-    symptoms: "Fever, headache, body pain (2 days)",
-    medicines: "Paracetamol 500mg (3x5 days)",
-    followUp: "6 Nov 2025",
-  },
-  {
-    date: "15 Oct 2025",
-    doctor: "Dr. Sharma",
-    department: "General Medicine",
-    diagnosis: "Viral Fever",
-    symptoms: "Fever, cough",
-    medicines: "Paracetamol, Azithromycin",
-    followUp: "20 Oct 2025",
-  },
-  {
-    date: "2 Sept 2025",
-    doctor: "Dr. Patil",
-    department: "Gastroenterology",
-    diagnosis: "Gastritis",
-    symptoms: "Stomach pain, acidity",
-    medicines: "Pantoprazole, Antacid",
-    followUp: "9 Sept 2025",
-  },
-];
+import { usePatientHistory } from "@shared/hooks/usePatientHistory";
+import { useLocation } from "react-router-dom";
 
 export default function PatientHistory() {
+  const location = useLocation();
+  const patientId = (location.state as any)?.patientId || null;
   const [open, setOpen] = useState(false);
-  const [selectedVisit, setSelectedVisit] = useState<typeof patientHistory[0] | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  
+  // Use real Firebase data
+  const { history, loading } = usePatientHistory(patientId || undefined);
+  
+  // Filter history by search
+  const filteredHistory = history.filter(visit => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      visit.doctor.toLowerCase().includes(query) ||
+      visit.diagnosis.toLowerCase().includes(query) ||
+      visit.department?.toLowerCase().includes(query) ||
+      visit.symptoms?.toLowerCase().includes(query)
+    );
+  });
+  
+  const [selectedVisit, setSelectedVisit] = useState<typeof filteredHistory[0] | null>(null);
+  
   const handleExportHistory = () => {
-    toast.success("Exporting complete medical history for Ramesh Kumar");
+    toast.success("Exporting complete medical history");
   };
 
   const handleViewPrescription = (date: string) => {
     toast.info(`Viewing prescription from ${date}`);
   };
 
-  const handleOpenDetails = (visit: typeof patientHistory[0]) => {
+  const handleOpenDetails = (visit: typeof filteredHistory[0]) => {
     setSelectedVisit(visit);
     setOpen(true);
   };
@@ -75,6 +67,8 @@ export default function PatientHistory() {
             <Input
               placeholder="Enter patient ID or name..."
               className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </CardContent>
@@ -113,8 +107,18 @@ export default function PatientHistory() {
           <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-border" />
 
           <div className="space-y-6">
-            {patientHistory.map((visit, index) => (
-              <div key={index} className="relative pl-20">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">Loading patient history...</span>
+              </div>
+            ) : filteredHistory.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No history found
+              </div>
+            ) : (
+              filteredHistory.map((visit, index) => (
+                <div key={visit.id || index} className="relative pl-20">
                 {/* Timeline dot */}
                 <div className="absolute left-6 top-6 h-5 w-5 rounded-full border-4 border-primary bg-card" />
 
@@ -130,7 +134,7 @@ export default function PatientHistory() {
                           {visit.doctor} • {visit.department}
                         </p>
                       </div>
-                      <Badge variant="secondary">Visit #{patientHistory.length - index}</Badge>
+                      <Badge variant="secondary">Visit #{filteredHistory.length - index}</Badge>
                     </div>
                   </CardHeader>
 
@@ -177,7 +181,8 @@ export default function PatientHistory() {
                   </CardContent>
                 </Card>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

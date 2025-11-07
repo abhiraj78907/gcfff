@@ -19,8 +19,10 @@ import {
 } from "lucide-react";
 import { toast } from "@patient/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@patient/components/ui/select";
+import { useLanguage } from "@shared/contexts/LanguageContext";
 
 const Settings = () => {
+  const { language, setLanguage } = useLanguage();
   const [notifications, setNotifications] = useState({
     medicineReminders: true,
     appointmentAlerts: true,
@@ -29,7 +31,6 @@ const Settings = () => {
     smsBackup: true,
   });
 
-  const [language, setLanguage] = useState("hindi");
   const [cloudSync, setCloudSync] = useState(true);
   const [caregiverMode, setCaregiverMode] = useState(false);
 
@@ -200,7 +201,7 @@ const Settings = () => {
             <h2 className="text-base md:text-lg font-semibold text-foreground">भाषा</h2>
           </div>
           
-          <Select value={language} onValueChange={setLanguage}>
+          <Select value={language} onValueChange={(val) => setLanguage(val as "english" | "hindi" | "kannada")}>
             <SelectTrigger className="h-12 text-base">
               <SelectValue />
             </SelectTrigger>

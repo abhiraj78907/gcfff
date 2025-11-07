@@ -9,6 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { useLabRequests } from "@/hooks/useLabRequests";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSubEntry } from "@/contexts/SubEntryContext";
+import { uploadLabResult } from "@/lib/labActions";
+import { notifyByRole, notifyError } from "@/lib/notifications";
 
 interface TestParameter {
   name: string;
@@ -28,9 +33,15 @@ const testParameters: TestParameter[] = [
 
 export default function UploadResults() {
   const { toast } = useToast();
+  const { requests } = useLabRequests();
+  const { user } = useAuth();
+  const { currentEntity } = useSubEntry();
   const [parameters, setParameters] = useState<TestParameter[]>(testParameters);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [remarks, setRemarks] = useState("");
+  const [selectedRequestId, setSelectedRequestId] = useState<string>("");
+  const [selectedTestType, setSelectedTestType] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
 
   const handleParameterChange = (index: number, value: string) => {
     const newParameters = [...parameters];
@@ -55,11 +66,77 @@ export default function UploadResults() {
     }
   };
 
-  const handleSubmit = () => {
-    toast({
-      title: "Results Submitted",
-      description: "Test results have been saved and sent for validation.",
-    });
+  const handleSubmit = async () => {
+    if (!selectedRequestId) {
+      toast({
+        title: "Selection Required",
+        description: "Please select a patient and test request.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const request = requests.find(r => r.id === selectedRequestId);
+    if (!request) {
+      toast({
+        title: "Invalid Request",
+        description: "Selected request not found.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const entityId = currentEntity?.id ?? user?.entityId;
+    if (!entityId) {
+      toast({
+        title: "Entity Required",
+        description: "Please select an entity.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Build values object from parameters
+      const values: Record<string, unknown> = {};
+      parameters.forEach(param => {
+        if (param.value) {
+          values[param.name] = `${param.value} ${param.unit}`;
+        }
+      });
+
+      // TODO: Upload file to Firebase Storage and get URL
+      // For now, we'll use a placeholder or skip file URL
+      const fileUrl = selectedFile ? `pending-upload-${selectedFile.name}` : undefined;
+
+      await uploadLabResult(
+        entityId,
+        request.patientId,
+        selectedRequestId,
+        {
+          testType: selectedTestType || request.testType,
+          resultUrl: fileUrl,
+          values,
+          verifiedBy: user?.id,
+          notes: remarks,
+        }
+      );
+
+      notifyByRole.lab.resultUploaded(request.patientId, selectedTestType || request.testType);
+
+      // Reset form
+      setParameters(testParameters);
+      setSelectedFile(null);
+      setRemarks("");
+      setSelectedRequestId("");
+      setSelectedTestType("");
+    } catch (error) {
+      console.error("[lab] Upload failed:", error);
+      notifyError("Upload Results", error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -93,32 +170,41 @@ export default function UploadResults() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <Label htmlFor="patient">Select Patient</Label>
-          <Select>
-            <SelectTrigger id="patient">
-              <SelectValue placeholder="Search for patient..." />
+          <Label htmlFor="request">Select Lab Request</Label>
+          <Select value={selectedRequestId} onValueChange={(val) => {
+            setSelectedRequestId(val);
+            const req = requests.find(r => r.id === val);
+            if (req) {
+              setSelectedTestType(req.testType);
+            }
+          }}>
+            <SelectTrigger id="request">
+              <SelectValue placeholder="Select a pending request..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="p1">Rajesh Kumar - P-12345</SelectItem>
-              <SelectItem value="p2">Priya Patel - P-12346</SelectItem>
-              <SelectItem value="p3">Amit Singh - P-12347</SelectItem>
+              {requests
+                .filter(r => r.status === "in_progress" || r.status === "ordered")
+                .map(req => (
+                  <SelectItem key={req.id} value={req.id}>
+                    {req.testType} - Patient {req.patientId}
+                  </SelectItem>
+                ))}
+              {requests.filter(r => r.status === "in_progress" || r.status === "ordered").length === 0 && (
+                <SelectItem value="none" disabled>No pending requests</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-4">
-          <Label htmlFor="test">Select Test Type</Label>
-          <Select>
-            <SelectTrigger id="test">
-              <SelectValue placeholder="Choose test..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cbc">Complete Blood Count</SelectItem>
-              <SelectItem value="lft">Liver Function Test</SelectItem>
-              <SelectItem value="kft">Kidney Function Test</SelectItem>
-              <SelectItem value="lipid">Lipid Profile</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label htmlFor="test">Test Type</Label>
+          <Input
+            id="test"
+            value={selectedTestType}
+            onChange={(e) => setSelectedTestType(e.target.value)}
+            placeholder="Test type (auto-filled from request)"
+            readOnly={!!selectedRequestId}
+          />
         </div>
       </div>
 
@@ -224,11 +310,11 @@ export default function UploadResults() {
       </Card>
 
       <div className="flex gap-4">
-        <Button onClick={handleSubmit} size="lg" className="flex-1">
+        <Button onClick={handleSubmit} size="lg" className="flex-1" disabled={uploading}>
           <Save className="h-4 w-4 mr-2" />
-          Save & Send for Validation
+          {uploading ? "Uploading..." : "Save & Send for Validation"}
         </Button>
-        <Button variant="outline" size="lg">
+        <Button variant="outline" size="lg" disabled={uploading}>
           Cancel
         </Button>
       </div>
