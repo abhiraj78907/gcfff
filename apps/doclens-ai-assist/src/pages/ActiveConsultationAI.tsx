@@ -418,30 +418,7 @@ export default function ActiveConsultationAI() {
         }
       }
       
-      // Auto-add suggested medicines with optimal timing
-      if (analysis.suggestedMedicines && analysis.suggestedMedicines.length > 0) {
-        console.log("[AI DOCTOR ASSISTANT] → Auto-adding medicines:", analysis.suggestedMedicines.length);
-        
-        const newMedicines: MedicineItem[] = analysis.suggestedMedicines.map((med, idx) => ({
-          id: `ai-med-${Date.now()}-${idx}`,
-          name: med.name,
-          timing: med.timing,
-          food: med.food,
-          duration: med.duration,
-          quantity: med.quantity,
-          drugId: `drug-${idx}`,
-          dosage: med.dosage,
-          frequency: med.frequency,
-        }));
-        
-        console.log("[AI DOCTOR ASSISTANT] → Medicine items created:", newMedicines);
-        if (isMountedRef.current) {
-          setMedicines(newMedicines);
-          toast.success("✅ Medicines auto-added", {
-            description: `${newMedicines.length} medicines with optimal timing`,
-          });
-        }
-      }
+      // Do NOT auto-add medicines. Selection is doctor-driven; AI will suggest timing on selection only.
       
       if (isMountedRef.current) {
         setIsProcessingSymptoms(false);
@@ -605,7 +582,6 @@ export default function ActiveConsultationAI() {
           setClinicalSummary((prev) => ({
             ...prev,
             symptomsEnglish: mergeUnique(prev.symptomsEnglish, validEnglishSymptoms),
-            symptomsRegional: mergeUnique(prev.symptomsRegional, validNativeSymptoms.length > 0 ? validNativeSymptoms : validEnglishSymptoms),
             summary:
               prev.summary && prev.summary.trim().length > 0
                 ? prev.summary
@@ -1908,29 +1884,16 @@ export default function ActiveConsultationAI() {
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <Label htmlFor="symptoms-regional">Regional Expressions</Label>
-                <Textarea
-                  id="symptoms-regional"
-                  placeholder="ಒಳಗಳು ನೋವು\nज्वर\nవాంతులు"
-                  className="mt-1.5 h-32"
-                  value={clinicalSummary.symptomsRegional.join("\n")}
-                  onChange={(e) => handleSummaryArrayChange("symptomsRegional", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">AI-detected patient phrases. Edit or add lines as needed.</p>
-              </div>
-              <div>
-                <Label htmlFor="symptoms-english">Standardized English</Label>
-                <Textarea
-                  id="symptoms-english"
-                  placeholder="Chest pain\nFever\nVomiting"
-                  className="mt-1.5 h-32"
-                  value={clinicalSummary.symptomsEnglish.join("\n")}
-                  onChange={(e) => handleSummaryArrayChange("symptomsEnglish", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Mapped medical terminology for physician verification.</p>
-              </div>
+            <div>
+              <Label htmlFor="symptoms-english">Standardized Symptoms (English)</Label>
+              <Textarea
+                id="symptoms-english"
+                placeholder="Chest pain\nFever\nVomiting"
+                className="mt-1.5 h-32"
+                value={clinicalSummary.symptomsEnglish.join("\n")}
+                onChange={(e) => handleSummaryArrayChange("symptomsEnglish", e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Only standardized English terms will be used in final outputs.</p>
             </div>
 
             <div>
@@ -2346,25 +2309,21 @@ export default function ActiveConsultationAI() {
               </section>
 
               <section className="section">
-                <h3 className="text-base font-medium mb-2">Symptoms &amp; Patient Expressions</h3>
+                <h3 className="text-base font-medium mb-2">Symptoms (Standardized English)</h3>
                 <table>
                   <thead>
                     <tr>
-                      <th style={{ width: "50%" }}>Regional Phrase</th>
-                      <th style={{ width: "50%" }}>Standardized English</th>
+                      <th>Symptom</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(clinicalSummary.symptomsRegional.length > 0 || clinicalSummary.symptomsEnglish.length > 0)
-                      ? Array.from({ length: Math.max(clinicalSummary.symptomsRegional.length, clinicalSummary.symptomsEnglish.length) }).map((_, idx) => (
-                        <tr key={idx}>
-                          <td>{clinicalSummary.symptomsRegional[idx] || ""}</td>
-                          <td>{clinicalSummary.symptomsEnglish[idx] || ""}</td>
-                        </tr>
+                    {clinicalSummary.symptomsEnglish.length > 0
+                      ? clinicalSummary.symptomsEnglish.map((s, idx) => (
+                        <tr key={idx}><td>{s}</td></tr>
                       ))
                       : (
                         <tr>
-                          <td colSpan={2} className="text-sm text-muted-foreground">Doctor to document symptoms</td>
+                          <td className="text-sm text-muted-foreground">Doctor to document symptoms</td>
                         </tr>
                       )}
                   </tbody>
