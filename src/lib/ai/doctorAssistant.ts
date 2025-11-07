@@ -3,7 +3,7 @@
  * Comprehensive AI assistant that processes consultation data and auto-fills everything
  */
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyBLJ62iYb0LICj2A8-Wui9WIYDM4JWQI2s";
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // Updated API endpoints - using available models for this API key
 // Available models: gemini-2.5-flash, gemini-2.5-pro, gemini-2.0-flash, gemini-flash-latest, gemini-pro-latest

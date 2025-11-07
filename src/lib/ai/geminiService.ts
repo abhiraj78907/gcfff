@@ -3,8 +3,8 @@
  * Handles all AI-powered features using Google Gemini API
  */
 
-// Get API key from environment or use provided key
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyBLJ62iYb0LICj2A8-Wui9WIYDM4JWQI2s";
+// Get API key strictly from environment (no hardcoded fallback)
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // Updated API endpoints - using available models for this API key
 // Available models: gemini-2.5-flash, gemini-2.5-pro, gemini-2.0-flash, gemini-flash-latest, gemini-pro-latest
