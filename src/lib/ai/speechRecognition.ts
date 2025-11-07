@@ -24,6 +24,7 @@ export class SpeechRecognitionService {
   private transcriptBuffer: string = "";
   private onTranscriptCallback?: (result: SpeechRecognitionResult) => void;
   private onErrorCallback?: (error: Error) => void;
+  private restartTimeout?: number;
 
   constructor(config: SpeechRecognitionConfig = {}) {
     // Check for browser support
@@ -135,7 +136,11 @@ export class SpeechRecognitionService {
       });
       
       const error = new Error(`Speech recognition error: ${event.error}`);
+      (error as any).code = event.error;
+      (error as any).recoverable = ["no-speech", "aborted", "network", "audio-capture"].includes(event.error);
       this.onErrorCallback?.(error);
+
+      const isRecoverable = (error as any).recoverable && this.isListening;
       
       // Handle specific errors
       if (event.error === "not-allowed") {
@@ -147,6 +152,20 @@ export class SpeechRecognitionService {
       } else if (event.error === "network") {
         console.error("[SpeechRecognition] Network error");
       }
+
+      if (isRecoverable) {
+        if (this.restartTimeout) {
+          clearTimeout(this.restartTimeout);
+        }
+        this.restartTimeout = window.setTimeout(() => {
+          try {
+            console.log("[SpeechRecognition] Recoverable error - restarting recognition");
+            this.recognition.start();
+          } catch (restartError) {
+            console.warn("[SpeechRecognition] Restart after recoverable error failed", restartError);
+          }
+        }, 500);
+      }
     };
 
     this.recognition.onend = () => {
@@ -156,13 +175,17 @@ export class SpeechRecognitionService {
       });
       
       if (this.isListening) {
-        // Auto-restart if still listening
-        try {
-          console.log("[SpeechRecognition] Auto-restarting...");
-          this.recognition.start();
-        } catch (e) {
-          console.warn("[SpeechRecognition] Auto-restart failed", e);
+        if (this.restartTimeout) {
+          clearTimeout(this.restartTimeout);
         }
+        this.restartTimeout = window.setTimeout(() => {
+          try {
+            console.log("[SpeechRecognition] Auto-restarting...");
+            this.recognition.start();
+          } catch (e) {
+            console.warn("[SpeechRecognition] Auto-restart failed", e);
+          }
+        }, 250);
       }
     };
 
@@ -267,6 +290,10 @@ export class SpeechRecognitionService {
   stop() {
     console.log("[SpeechRecognition] Stopping recognition");
     this.isListening = false;
+    if (this.restartTimeout) {
+      clearTimeout(this.restartTimeout);
+      this.restartTimeout = undefined;
+    }
     if (this.recognition) {
       try {
         this.recognition.stop();

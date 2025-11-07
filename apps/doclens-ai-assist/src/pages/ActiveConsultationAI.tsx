@@ -67,6 +67,8 @@ const mergeSymptomStrings = (current: string, incoming: string[]): string[] => {
   return result;
 };
 
+const RECOVERABLE_SPEECH_ERRORS = new Set(["no-speech", "aborted", "network", "audio-capture"]);
+
 interface MedicineItem {
   id: string;
   name: string;
@@ -107,9 +109,11 @@ export default function ActiveConsultationAI() {
   
   // Speech Recognition
   const speechRecognitionRef = useRef<SpeechRecognitionService | null>(null);
-  const microphoneStreamRef = useRef<MediaStream | null>(null); // Keep stream active during recording
-  const transcriptAccumulatorRef = useRef<string>("");
   const finalChunksRef = useRef<string[]>([]);
+  const fullTranscriptRef = useRef<string>("");
+  const transcriptAccumulatorRef = useRef<string>("");
+  const microphoneStreamRef = useRef<MediaStream | null>(null);
+
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [currentSpeaker, setCurrentSpeaker] = useState<"patient" | "doctor">("patient");
@@ -503,6 +507,105 @@ export default function ActiveConsultationAI() {
     }
   }, [detectedLanguage, symptoms, isProcessingSymptoms, getDiagnosisSuggestions, analyzeConsultationComprehensive]);
 
+  const attachSpeechServiceHandlers = useCallback((service: SpeechRecognitionService | null) => {
+    if (!service) {
+      console.warn("[ActiveConsultationAI] attachSpeechServiceHandlers called without service instance");
+      return;
+    }
+
+    let lastLangSwitchAt = 0;
+    const LANG_DWELL_MS = 20000;
+
+    service.onTranscript((result) => {
+      console.log("[ActiveConsultationAI] 📝 Transcript received:", {
+        transcript: result.transcript.substring(0, 100) + "...",
+        length: result.transcript.length,
+        isFinal: result.isFinal,
+        speaker: result.speaker,
+        confidence: result.confidence,
+      });
+
+      const chunk = result.transcript.trim();
+      if (!chunk) {
+        console.debug("[ActiveConsultationAI] ⚠️ Empty chunk, skipping");
+        return;
+      }
+
+      const sanitize = (text: string) => text.replace(/\s+/g, " ").trim();
+      const existing = transcriptAccumulatorRef.current;
+      const sanitizedFull = sanitize(result.transcript);
+
+      if (result.isFinal) {
+        if (!existing) {
+          transcriptAccumulatorRef.current = sanitizedFull;
+          finalChunksRef.current = sanitizedFull ? [sanitizedFull] : [];
+        } else if (sanitizedFull.length >= existing.length && sanitizedFull.toLowerCase().includes(existing.toLowerCase())) {
+          transcriptAccumulatorRef.current = sanitizedFull;
+          finalChunksRef.current = sanitizedFull ? [sanitizedFull] : [];
+        } else {
+          const sanitizedChunk = sanitize(chunk);
+          if (sanitizedChunk && !existing.toLowerCase().includes(sanitizedChunk.toLowerCase())) {
+            transcriptAccumulatorRef.current = sanitize(`${existing} ${sanitizedChunk}`);
+            finalChunksRef.current.push(sanitizedChunk);
+          }
+        }
+        setFullTranscript(transcriptAccumulatorRef.current);
+      } else {
+        const preview = sanitizedFull || sanitize(`${existing} ${chunk}`);
+        setFullTranscript(preview);
+      }
+
+      const detectionSource = result.isFinal
+        ? transcriptAccumulatorRef.current
+        : `${transcriptAccumulatorRef.current} ${chunk}`;
+      if (detectionSource.length > 50) {
+        console.log("[ActiveConsultationAI] 🌐 Detecting language from transcript...");
+        detectLanguage(detectionSource).then((lang) => {
+          console.log("[ActiveConsultationAI] ✅ Language detected:", lang);
+          const now = Date.now();
+          setDetectedLanguage(lang);
+          if (now - lastLangSwitchAt > LANG_DWELL_MS) {
+            service.setLanguage(lang);
+            lastLangSwitchAt = now;
+            console.log("[ActiveConsultationAI] 🔄 Lang switched with dwell:", lang);
+          } else {
+            console.log("[ActiveConsultationAI] ⏱ Lang switch skipped (dwell)");
+          }
+        }).catch(err => {
+          console.error("[ActiveConsultationAI] ❌ Language detection failed:", err);
+        });
+      }
+
+      if (result.isFinal && (result.speaker === "patient" || !result.speaker) && transcriptAccumulatorRef.current.length > 10) {
+        const cumulativeTranscript = transcriptAccumulatorRef.current;
+        console.log("[ActiveConsultationAI] 🤖 Final transcript - analyzing cumulative conversation...");
+        analyzeConsultationComprehensive(cumulativeTranscript).catch(err => {
+          console.error("[ActiveConsultationAI] ❌ Comprehensive analysis error:", err);
+          extractSymptomsAsync(cumulativeTranscript, true).catch(e => {
+            console.error("[ActiveConsultationAI] ❌ Symptom extraction fallback error:", e);
+          });
+        });
+      }
+    });
+
+    service.onError((error: Error & { code?: string; recoverable?: boolean }) => {
+      const code = error.code;
+      const recoverable = error.recoverable || (code ? RECOVERABLE_SPEECH_ERRORS.has(code) : false);
+      if (recoverable) {
+        console.warn("[ActiveConsultationAI] ⚠️ Recoverable speech recognition issue:", code, error.message);
+        return;
+      }
+
+      console.error("[ActiveConsultationAI] ❌ Speech recognition error:", error);
+      if (isMountedRef.current) {
+        setIsRecording(false);
+        toast.error("Speech recognition error", {
+          description: error.message || "Please try again or use manual input",
+        });
+      }
+    });
+  }, [analyzeConsultationComprehensive, extractSymptomsAsync]);
+
   // Initialize Speech Recognition
   useEffect(() => {
     console.log("[ActiveConsultationAI] useEffect: Initializing speech recognition...");
@@ -524,93 +627,8 @@ export default function ActiveConsultationAI() {
           interimResults: true,
         });
 
-        // Continuous capture with language dwell switching
-        let lastLangSwitchAt = 0;
-        const LANG_DWELL_MS = 20000;
-
-        service.onTranscript((result) => {
-          console.log("[ActiveConsultationAI] 📝 Transcript received:", {
-            transcript: result.transcript.substring(0, 100) + "...",
-            length: result.transcript.length,
-            isFinal: result.isFinal,
-            speaker: result.speaker,
-            confidence: result.confidence,
-          });
-
-          const chunk = result.transcript.trim();
-          if (!chunk) {
-            console.debug("[ActiveConsultationAI] ⚠️ Empty chunk, skipping");
-            return;
-          }
-          
-          const sanitize = (text: string) => text.replace(/\s+/g, " ").trim();
-          const existing = transcriptAccumulatorRef.current;
-          const sanitizedFull = sanitize(result.transcript);
-
-          if (result.isFinal) {
-            if (!existing) {
-              transcriptAccumulatorRef.current = sanitizedFull;
-              finalChunksRef.current = sanitizedFull ? [sanitizedFull] : [];
-            } else if (sanitizedFull.length >= existing.length && sanitizedFull.toLowerCase().includes(existing.toLowerCase())) {
-              transcriptAccumulatorRef.current = sanitizedFull;
-              finalChunksRef.current = sanitizedFull ? [sanitizedFull] : [];
-            } else {
-              const sanitizedChunk = sanitize(chunk);
-              if (sanitizedChunk && !existing.toLowerCase().includes(sanitizedChunk.toLowerCase())) {
-                transcriptAccumulatorRef.current = sanitize(`${existing} ${sanitizedChunk}`);
-                finalChunksRef.current.push(sanitizedChunk);
-              }
-            }
-            setFullTranscript(transcriptAccumulatorRef.current);
-          } else {
-            const preview = sanitizedFull || sanitize(`${existing} ${chunk}`);
-            setFullTranscript(preview);
-          }
-          
-          // Auto-detect language periodically (every 50+ characters)
-          const detectionSource = result.isFinal
-            ? transcriptAccumulatorRef.current
-            : `${transcriptAccumulatorRef.current} ${chunk}`;
-          if (detectionSource.length > 50) {
-            console.log("[ActiveConsultationAI] 🌐 Detecting language from transcript...");
-            detectLanguage(detectionSource).then((lang) => {
-              console.log("[ActiveConsultationAI] ✅ Language detected:", lang);
-              const now = Date.now();
-              setDetectedLanguage(lang);
-              if (now - lastLangSwitchAt > LANG_DWELL_MS) {
-                // Update speech recognition language with dwell protection
-                speechRecognitionRef.current?.setLanguage(lang);
-                lastLangSwitchAt = now;
-                console.log("[ActiveConsultationAI] 🔄 Lang switched with dwell:", lang);
-              } else {
-                console.log("[ActiveConsultationAI] ⏱ Lang switch skipped (dwell)");
-              }
-            }).catch(err => {
-              console.error("[ActiveConsultationAI] ❌ Language detection failed:", err);
-            });
-          }
-          
-          // Trigger analysis on finalized patient phrases using cumulative transcript
-          if (result.isFinal && (result.speaker === "patient" || !result.speaker) && transcriptAccumulatorRef.current.length > 10) {
-            const cumulativeTranscript = transcriptAccumulatorRef.current;
-            console.log("[ActiveConsultationAI] 🤖 Final transcript - analyzing cumulative conversation...");
-            analyzeConsultationComprehensive(cumulativeTranscript).catch(err => {
-              console.error("[ActiveConsultationAI] ❌ Comprehensive analysis error:", err);
-              extractSymptomsAsync(cumulativeTranscript, true).catch(e => {
-                console.error("[ActiveConsultationAI] ❌ Symptom extraction fallback error:", e);
-              });
-            });
-          }
-        });
-
-        service.onError((error) => {
-          console.error("[ActiveConsultationAI] ❌ Speech recognition error:", error);
-          setIsRecording(false);
-          toast.error("Speech recognition error", {
-            description: error.message || "Please try again or use manual input",
-          });
-        });
-
+        attachSpeechServiceHandlers(service);
+ 
         speechRecognitionRef.current = service;
         console.log("[Consultation] Speech recognition service initialized");
       } catch (error) {
@@ -640,7 +658,7 @@ export default function ActiveConsultationAI() {
         microphoneStreamRef.current = null;
       }
     };
-  }, [extractSymptomsAsync]);
+  }, [attachSpeechServiceHandlers]);
 
   // Component cleanup on unmount - prevents state updates after unmount
   useEffect(() => {
@@ -939,48 +957,8 @@ export default function ActiveConsultationAI() {
         
         console.log("[SPEECH RECOGNITION] ✅ Service created:", service);
 
-        service.onTranscript((result) => {
-          // ===== ACCURATE VOICE-TO-TEXT LOGGING =====
-          console.log("========================================");
-          console.log("[VOICE-TO-TEXT] 📝 RAW TRANSCRIPT RECEIVED");
-          console.log("========================================");
-          console.log("[VOICE-TO-TEXT] Full transcript:", result.transcript);
-          console.log("[VOICE-TO-TEXT] Transcript length:", result.transcript.length, "characters");
-          console.log("[VOICE-TO-TEXT] Is final:", result.isFinal);
-          console.log("[VOICE-TO-TEXT] Speaker:", result.speaker || "unknown");
-          console.log("[VOICE-TO-TEXT] Confidence:", result.confidence);
-          console.log("[VOICE-TO-TEXT] Timestamp:", new Date().toISOString());
-          console.log("========================================");
-          
-          // Always update transcript for real-time display
-          setFullTranscript(result.transcript);
-          
-          // Auto-extract symptoms in real-time
-          if (result.speaker === "patient" || !result.speaker) {
-            if (result.isFinal && result.transcript.length > 10) {
-              console.log("[ActiveConsultationAI] 🤖 Final transcript - triggering comprehensive AI analysis...");
-              // Use comprehensive doctor assistant analysis
-              analyzeConsultationComprehensive(result.transcript);
-            } else if (!result.isFinal && result.transcript.length > 30) {
-              const lastExtraction = (window as any).lastSymptomExtraction || 0;
-              const now = Date.now();
-              if (now - lastExtraction > 3000) {
-                console.log("[ActiveConsultationAI] 🤖 Interim transcript - extracting symptoms...");
-                (window as any).lastSymptomExtraction = now;
-                extractSymptomsAsync(result.transcript, false);
-              }
-            }
-          }
-        });
-
-        service.onError((error) => {
-          console.error("[ActiveConsultationAI] ❌ Speech recognition error:", error);
-          setIsRecording(false);
-          toast.error("Speech recognition error", {
-            description: error.message || "Please try again or use manual input",
-          });
-        });
-
+        attachSpeechServiceHandlers(service);
+ 
         speechRecognitionRef.current = service;
         console.log("[SPEECH RECOGNITION] ✅ Service initialized and stored in ref");
       } catch (initError) {
