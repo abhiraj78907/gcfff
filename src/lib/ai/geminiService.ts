@@ -134,28 +134,40 @@ export async function extractSymptoms(
     let lastError: any = null;
     let response: Response | null = null;
     
-    for (let i = 0; i < GEMINI_API_ENDPOINTS.length; i++) {
-      const endpoint = GEMINI_API_ENDPOINTS[i];
-      const requestUrl = `${endpoint}?key=${GEMINI_API_KEY}`;
-      
-      console.log(`[GeminiService] 🔗 Trying endpoint ${i + 1}/${GEMINI_API_ENDPOINTS.length}:`, {
-        url: requestUrl.replace(GEMINI_API_KEY, "***KEY***"),
-        timestamp: new Date().toISOString(),
+    // Prefer serverless proxy to avoid exposing API key
+    try {
+      response = await fetch("/.netlify/functions/gemini-proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt })
       });
-      
-      try {
-        response = await fetch(requestUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }]
-          }),
+    } catch (e) {
+      response = null;
+    }
+
+    if (!response) {
+      for (let i = 0; i < GEMINI_API_ENDPOINTS.length; i++) {
+        const endpoint = GEMINI_API_ENDPOINTS[i];
+        const requestUrl = `${endpoint}?key=${GEMINI_API_KEY}`;
+        
+        console.log(`[GeminiService] 🔗 Trying endpoint ${i + 1}/${GEMINI_API_ENDPOINTS.length}:`, {
+          url: GEMINI_API_KEY ? requestUrl.replace(GEMINI_API_KEY, "***KEY***") : requestUrl,
+          timestamp: new Date().toISOString(),
         });
         
+        try {
+          response = await fetch(requestUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{ text: prompt }]
+              }]
+            }),
+          });
+          
         // Handle different status codes
         if (response.status === 404) {
           console.warn(`[GeminiService] ⚠️ Endpoint ${i + 1} returned 404, trying next...`);
@@ -184,12 +196,13 @@ export async function extractSymptoms(
         
         // If not 404/429/403, break (success or other error)
         break;
-      } catch (networkError: any) {
-        console.warn(`[GeminiService] ⚠️ Endpoint ${i + 1} failed:`, networkError.message);
-        lastError = networkError;
-        response = null;
-        if (i < GEMINI_API_ENDPOINTS.length - 1) {
-          continue;
+        } catch (networkError: any) {
+          console.warn(`[GeminiService] ⚠️ Endpoint ${i + 1} failed:`, networkError.message);
+          lastError = networkError;
+          response = null;
+          if (i < GEMINI_API_ENDPOINTS.length - 1) {
+            continue;
+          }
         }
       }
     }
