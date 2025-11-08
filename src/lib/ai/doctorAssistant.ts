@@ -47,7 +47,7 @@ export interface ConsultationAnalysis {
  */
 export async function analyzeConsultation(
   transcript: string,
-  language: "kannada" | "hindi" | "telugu" | "english" = "kannada"
+  language: "kannada" | "hindi" | "telugu" | "urdu" | "english" = "kannada"
 ): Promise<ConsultationAnalysis> {
   console.log("[DoctorAssistant] ===== STARTING COMPREHENSIVE ANALYSIS =====");
   console.log("[DoctorAssistant] Input transcript:", transcript);

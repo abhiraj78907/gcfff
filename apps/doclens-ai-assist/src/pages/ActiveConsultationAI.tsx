@@ -18,7 +18,8 @@ import { createConsultation, createPrescription, createLabOrder } from "@shared/
 import { notifyByRole, notifyError } from "@shared/lib/notifications";
 import { SpeechRecognitionService } from "@shared/lib/ai/speechRecognition";
 import { extractSymptoms, suggestDiagnosis, formatPrescription, detectLanguage } from "@shared/lib/ai/geminiService";
-import { analyzeConsultation, suggestMedicineTiming, getDosageRecommendation, type ConsultationAnalysis, type DosageRecommendation } from "@shared/lib/ai/doctorAssistant";
+import { analyzeClinicalConversation, getMedicinePrescriptionStructure, type ClinicalTranscriptResult } from "@shared/lib/ai/clinicalAssistant";
+import { suggestMedicineTiming, getDosageRecommendation, type DosageRecommendation } from "@shared/lib/ai/doctorAssistant";
 import { normalizeSymptomsToEnglish } from "@shared/lib/ai/symptomNormalization";
 import { searchMedicines, type Medicine } from "@shared/lib/medicineSearch";
 import { fetchUserProfile } from "@shared/lib/userProfile";
@@ -47,6 +48,13 @@ import {
   CommandList,
 } from "../components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 const mergeSymptomStrings = (current: string, incoming: string[]): string[] => {
   const base = (current || "")
@@ -88,6 +96,7 @@ interface DiagnosisSuggestion {
   icd10Code?: string;
 }
 
+
 export default function ActiveConsultationAI() {
   console.log("========================================");
   console.log("========================================");
@@ -107,17 +116,17 @@ export default function ActiveConsultationAI() {
   // Component mount tracking - prevents state updates after unmount
   const isMountedRef = useRef(true);
   
-  // Speech Recognition
+  // Speech Recognition (Web Speech API)
   const speechRecognitionRef = useRef<SpeechRecognitionService | null>(null);
-  const finalChunksRef = useRef<string[]>([]);
   const fullTranscriptRef = useRef<string>("");
-  const transcriptAccumulatorRef = useRef<string>("");
-  const microphoneStreamRef = useRef<MediaStream | null>(null);
+  const lastAnalysisTranscriptRef = useRef<string>("");
+  const conversationSessionIdRef = useRef<string>(`session-${Date.now()}`);
+  const analysisDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [currentSpeaker, setCurrentSpeaker] = useState<"patient" | "doctor">("patient");
-  const [detectedLanguage, setDetectedLanguage] = useState<"kannada" | "hindi" | "telugu" | "english">("kannada");
+  const [detectedLanguage, setDetectedLanguage] = useState<"kannada" | "hindi" | "telugu" | "urdu" | "tamil" | "english">("kannada");
   const [fullTranscript, setFullTranscript] = useState("");
   const [micPermissionStatus, setMicPermissionStatus] = useState<"unknown" | "granted" | "denied" | "prompt">("unknown");
   
@@ -126,6 +135,7 @@ export default function ActiveConsultationAI() {
   const [isProcessingDiagnosis, setIsProcessingDiagnosis] = useState(false);
   const [diagnosisSuggestions, setDiagnosisSuggestions] = useState<DiagnosisSuggestion[]>([]);
   const [showDiagnosisSuggestions, setShowDiagnosisSuggestions] = useState(false);
+  const [clinicalAnalysis, setClinicalAnalysis] = useState<ClinicalTranscriptResult | null>(null);
   // Form State
   const [saving, setSaving] = useState(false);
   const [symptoms, setSymptoms] = useState("");
@@ -280,104 +290,106 @@ export default function ActiveConsultationAI() {
     ],
   };
 
-  // Comprehensive AI Analysis - Doctor Assistant
-  const analyzeConsultationComprehensive = useCallback(async (transcript: string) => {
-    // Check if component is still mounted before proceeding
-    if (!isMountedRef.current) {
-      console.warn("[AI DOCTOR ASSISTANT] ⚠️ Component unmounted, skipping analysis");
+  // Advanced Clinical Analysis - Dynamic, Unique per Conversation
+  const performClinicalAnalysis = useCallback(async (transcript: string, force: boolean = false) => {
+    // Skip if transcript hasn't changed significantly
+    const transcriptDiff = transcript.length - lastAnalysisTranscriptRef.current.length;
+    if (!force && transcriptDiff < 20 && transcript.length > 0) {
+      return; // Not enough new content
+    }
+
+    // Skip if already processing
+    if (isProcessingSymptoms || isProcessingDiagnosis) {
       return;
     }
-    
-    console.log("========================================");
-    console.log("[AI DOCTOR ASSISTANT] 🏥 STARTING COMPREHENSIVE ANALYSIS");
-    console.log("========================================");
-    console.log("[AI DOCTOR ASSISTANT] Input transcript:", transcript);
-    console.log("[AI DOCTOR ASSISTANT] Language:", detectedLanguage);
-    
-    setIsProcessingSymptoms(true);
-    setIsProcessingDiagnosis(true);
-    
-    try {
-      const analysis = await analyzeConsultation(transcript, detectedLanguage);
-      
-      // Check again after async operation
-      if (!isMountedRef.current) {
-        console.warn("[AI DOCTOR ASSISTANT] ⚠️ Component unmounted during analysis, skipping state updates");
-        return;
-      }
-      
-      console.log("========================================");
-      console.log("[AI DOCTOR ASSISTANT] ✅ ANALYSIS COMPLETE");
-      console.log("========================================");
-      console.log("[AI DOCTOR ASSISTANT] Full analysis response:", JSON.stringify(analysis, null, 2));
-      console.log("[AI DOCTOR ASSISTANT] Symptoms:", analysis.symptoms);
-      console.log("[AI DOCTOR ASSISTANT] Diagnosis:", analysis.diagnosis);
-      console.log("[AI DOCTOR ASSISTANT] Medicines:", analysis.suggestedMedicines);
-      console.log("========================================");
-      
-      // Auto-fill symptoms
-      if (analysis.symptoms && analysis.symptoms.length > 0) {
-        const mergedSymptoms = mergeSymptomStrings(symptoms, analysis.symptoms);
-        const englishMerged = normalizeSymptomsToEnglish([], mergedSymptoms);
-        console.log("[AI DOCTOR ASSISTANT] → Merged symptoms:", mergedSymptoms);
-        if (isMountedRef.current) {
-          setSymptoms(mergedSymptoms.join(", "));
-          setSymptomsEnglish(englishMerged.join(", "));
-          toast.success("✅ Symptoms updated", {
-            description: `${mergedSymptoms.length} total symptoms identified`,
-          });
+
+    // Clear existing debounce
+    if (analysisDebounceTimeoutRef.current) {
+      clearTimeout(analysisDebounceTimeoutRef.current);
+    }
+
+    // Debounce analysis (2 seconds) to wait for complete statements
+    analysisDebounceTimeoutRef.current = setTimeout(async () => {
+      if (!isMountedRef.current) return;
+
+      setIsProcessingSymptoms(true);
+      setIsProcessingDiagnosis(true);
+      lastAnalysisTranscriptRef.current = transcript;
+
+      try {
+        console.log("[ClinicalAssistant] 🔍 Analyzing conversation...", {
+          sessionId: conversationSessionIdRef.current,
+          transcriptLength: transcript.length,
+          language: detectedLanguage
+        });
+
+        const analysis = await analyzeClinicalConversation(transcript, detectedLanguage);
+        if (!isMountedRef.current) return;
+
+        console.log("[ClinicalAssistant] ✅ Analysis complete", analysis);
+
+        // Update symptoms dynamically (merge with existing, avoid duplicates)
+        if (analysis.symptoms.normalized.length > 0) {
+          const existingSymptoms = symptoms.split(/[,\n]/).map(s => s.trim()).filter(s => s.length > 0);
+          const newSymptoms = analysis.symptoms.normalized.filter(s => !existingSymptoms.includes(s));
+          
+          if (newSymptoms.length > 0) {
+            const merged = [...existingSymptoms, ...newSymptoms].join(", ");
+            setSymptoms(merged);
+            toast.success("Symptoms updated", {
+              description: `Added ${newSymptoms.length} new symptom(s)`,
+            });
+          }
         }
-      }
-      
-      // Auto-fill diagnosis
-      if (analysis.diagnosis) {
-        console.log("[AI DOCTOR ASSISTANT] → Auto-filling diagnosis:", analysis.diagnosis);
-        if (isMountedRef.current) {
-          setDiagnosis(analysis.diagnosis);
-          toast.success("✅ Diagnosis auto-filled", {
-            description: `${analysis.diagnosis} (${(analysis.diagnosisConfidence * 100).toFixed(0)}% confidence)`,
-          });
+
+        // Update diagnosis if more confident or if empty
+        if (analysis.diagnosis.primary) {
+          if (!diagnosis || analysis.diagnosis.confidence > 0.7) {
+            setDiagnosis(analysis.diagnosis.primary);
+            toast.success("Diagnosis updated", {
+              description: `${analysis.diagnosis.primary} (${Math.round(analysis.diagnosis.confidence * 100)}% confidence)`,
+            });
+          }
         }
-      }
-      
-      // Auto-fill advice
-      if (analysis.advice) {
-        console.log("[AI DOCTOR ASSISTANT] → Auto-filling advice:", analysis.advice);
-        if (isMountedRef.current) {
+
+        // Update advice
+        if (analysis.advice && !advice) {
           setAdvice(analysis.advice);
         }
-      }
-      
-      // Auto-fill follow-up date
-      if (analysis.followUpDays) {
-        const followUpDate = new Date();
-        followUpDate.setDate(followUpDate.getDate() + analysis.followUpDays);
-        const dateStr = followUpDate.toISOString().split("T")[0];
-        console.log("[AI DOCTOR ASSISTANT] → Auto-filling follow-up date:", dateStr);
+
+        // Update follow-up date
+        if (analysis.followUpDays && !followUpDate) {
+          const followUp = new Date();
+          followUp.setDate(followUp.getDate() + analysis.followUpDays);
+          setFollowUpDate(followUp.toISOString().split("T")[0]);
+        }
+
+        // Update prescription structure (for when doctor adds medicines)
+        if (analysis.prescriptionStructure) {
+          setMedicineForm(prev => ({
+            ...prev,
+            timing: analysis.prescriptionStructure.timing,
+            food: analysis.prescriptionStructure.foodTiming,
+            duration: analysis.prescriptionStructure.duration,
+            dosage: analysis.prescriptionStructure.dosage,
+          }));
+        }
+
+      } catch (error) {
+        console.error("[ClinicalAssistant] ❌ Analysis failed:", error);
         if (isMountedRef.current) {
-          setFollowUpDate(dateStr);
+          toast.error("Clinical analysis failed", {
+            description: "Please try again or fill manually",
+          });
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setIsProcessingSymptoms(false);
+          setIsProcessingDiagnosis(false);
         }
       }
-      
-      // Do NOT auto-add medicines. Selection is doctor-driven; AI will suggest timing on selection only.
-      
-      if (isMountedRef.current) {
-        setIsProcessingSymptoms(false);
-        setIsProcessingDiagnosis(false);
-        console.log("[AI DOCTOR ASSISTANT] ✅ All auto-fills complete!");
-      }
-      
-    } catch (error) {
-      console.error("[AI DOCTOR ASSISTANT] ❌ Analysis failed:", error);
-      if (isMountedRef.current) {
-        toast.error("AI analysis failed", {
-          description: "Please fill manually or try again",
-        });
-        setIsProcessingSymptoms(false);
-        setIsProcessingDiagnosis(false);
-      }
-    }
-  }, [detectedLanguage]);
+    }, 2000); // Wait 2 seconds for complete statements
+  }, [detectedLanguage, symptoms, diagnosis, advice, followUpDate, isProcessingSymptoms, isProcessingDiagnosis]);
 
   // Get diagnosis suggestions - defined first to avoid circular dependency
   const getDiagnosisSuggestions = useCallback(async () => {
@@ -431,257 +443,99 @@ export default function ActiveConsultationAI() {
     }
   }, [symptoms, fullTranscript, detectedLanguage]);
 
-  // Extract symptoms asynchronously - defined after getDiagnosisSuggestions
-  const extractSymptomsAsync = useCallback(async (transcript: string, force: boolean = false) => {
-    // Only skip if already processing
-    if (isProcessingSymptoms) {
-      console.log("[AI] Already processing symptoms, skipping...");
+  // Initialize Speech Recognition Service (Web Speech API)
+  useEffect(() => {
+    if (!SpeechRecognitionService.isSupported()) {
+      console.warn("[ActiveConsultationAI] Speech Recognition not supported in this browser");
       return;
     }
-    
-    // If symptoms exist and doctor might have edited, only update if force=true
-    if (symptoms.length > 20 && !force) {
-      console.log("[AI] Symptoms already exist, skipping auto-extraction");
-      return;
-    }
-    
-    console.log("[AI] Extracting symptoms from:", transcript);
-    setIsProcessingSymptoms(true);
-    
-    try {
-      const result = await extractSymptoms(transcript, detectedLanguage);
-      console.log("[AI] Symptom extraction result:", result);
-      
-      // Handle new format with native and English symptoms
-      const englishSymptoms = result.symptomsEnglish || result.symptoms || [];
-      const nativeSymptoms = result.symptomsNative || [];
-      
-      if (englishSymptoms.length > 0) {
-        // Filter out any placeholder or invalid symptoms
-        const validEnglishSymptoms = englishSymptoms.filter((s: string) => {
-          const symptom = String(s).trim();
-          return symptom.length > 0 && 
-                 !symptom.includes("[AI-generated") && 
-                 !symptom.includes("Patient reports:") &&
-                 !symptom.toLowerCase().includes("placeholder");
-        });
-        
-        const validNativeSymptoms = nativeSymptoms.filter((s: string) => {
-          const symptom = String(s).trim();
-          return symptom.length > 0 && 
-                 !symptom.includes("[AI-generated") && 
-                 !symptom.includes("Patient reports:") &&
-                 !symptom.toLowerCase().includes("placeholder");
-        });
-        
-        if (validEnglishSymptoms.length > 0) {
-          const merged = mergeSymptomStrings(symptoms, validEnglishSymptoms);
-          const normalized = normalizeSymptomsToEnglish([], merged);
-          setSymptoms(merged.join(", "));
-          setSymptomsEnglish(normalized.join(", "));
-          setSymptomsNative("");
 
-          toast.success("Symptoms extracted", {
-            description: `${normalized.length} symptoms found (standardized to English)`,
-          });
-
-          setTimeout(() => {
-            getDiagnosisSuggestions();
-          }, 1000);
-        } else {
-          console.log("[AI] No valid symptoms extracted from transcript");
-          toast.warning("No symptoms found", {
-            description: "Please enter symptoms manually or try speaking again",
-          });
-        }
-      } else {
-        console.log("[AI] No symptoms extracted from transcript");
-      }
-    } catch (error) {
-      console.error("[AI] Symptom extraction failed:", error);
-      toast.error("Symptom extraction failed", {
-        description: "Please enter symptoms manually",
-      });
-    } finally {
-      setIsProcessingSymptoms(false);
-    }
-  }, [detectedLanguage, symptoms, isProcessingSymptoms, getDiagnosisSuggestions, analyzeConsultationComprehensive]);
-
-  const attachSpeechServiceHandlers = useCallback((service: SpeechRecognitionService | null) => {
-    if (!service) {
-      console.warn("[ActiveConsultationAI] attachSpeechServiceHandlers called without service instance");
-      return;
-    }
+    const service = new SpeechRecognitionService({
+      continuous: true,
+      interimResults: true,
+      language: "kn-IN", // Default to Kannada
+    });
 
     let lastLangSwitchAt = 0;
     const LANG_DWELL_MS = 20000;
 
     service.onTranscript((result) => {
-      console.log("[ActiveConsultationAI] 📝 Transcript received:", {
-        transcript: result.transcript.substring(0, 100) + "...",
-        length: result.transcript.length,
-        isFinal: result.isFinal,
-        speaker: result.speaker,
-        confidence: result.confidence,
-      });
+      if (!isMountedRef.current) return;
 
-      const chunk = result.transcript.trim();
-      if (!chunk) {
-        console.debug("[ActiveConsultationAI] ⚠️ Empty chunk, skipping");
-        return;
-      }
+      const transcript = result.transcript.trim();
+      if (!transcript) return;
 
-      const sanitize = (text: string) => text.replace(/\s+/g, " ").trim();
-      const existing = transcriptAccumulatorRef.current;
-      const sanitizedFull = sanitize(result.transcript);
+      // Update transcript continuously
+      fullTranscriptRef.current = transcript;
+      setFullTranscript(transcript);
 
-      if (result.isFinal) {
-        if (!existing) {
-          transcriptAccumulatorRef.current = sanitizedFull;
-          finalChunksRef.current = sanitizedFull ? [sanitizedFull] : [];
-        } else if (sanitizedFull.length >= existing.length && sanitizedFull.toLowerCase().includes(existing.toLowerCase())) {
-          transcriptAccumulatorRef.current = sanitizedFull;
-          finalChunksRef.current = sanitizedFull ? [sanitizedFull] : [];
-        } else {
-          const sanitizedChunk = sanitize(chunk);
-          if (sanitizedChunk && !existing.toLowerCase().includes(sanitizedChunk.toLowerCase())) {
-            transcriptAccumulatorRef.current = sanitize(`${existing} ${sanitizedChunk}`);
-            finalChunksRef.current.push(sanitizedChunk);
-          }
-        }
-        setFullTranscript(transcriptAccumulatorRef.current);
-      } else {
-        const preview = sanitizedFull || sanitize(`${existing} ${chunk}`);
-        setFullTranscript(preview);
-      }
-
-      const detectionSource = result.isFinal
-        ? transcriptAccumulatorRef.current
-        : `${transcriptAccumulatorRef.current} ${chunk}`;
-      if (detectionSource.length > 50) {
-        console.log("[ActiveConsultationAI] 🌐 Detecting language from transcript...");
-        detectLanguage(detectionSource).then((lang) => {
-          console.log("[ActiveConsultationAI] ✅ Language detected:", lang);
+      // Update language detection
+      if (result.speaker === "patient" && transcript.length > 50) {
+        detectLanguage(transcript).then((lang) => {
           const now = Date.now();
-          setDetectedLanguage(lang);
           if (now - lastLangSwitchAt > LANG_DWELL_MS) {
+            setDetectedLanguage(lang);
             service.setLanguage(lang);
             lastLangSwitchAt = now;
-            console.log("[ActiveConsultationAI] 🔄 Lang switched with dwell:", lang);
-          } else {
-            console.log("[ActiveConsultationAI] ⏱ Lang switch skipped (dwell)");
           }
-        }).catch(err => {
-          console.error("[ActiveConsultationAI] ❌ Language detection failed:", err);
-        });
+        }).catch(() => {});
       }
 
-      if (result.isFinal && (result.speaker === "patient" || !result.speaker) && transcriptAccumulatorRef.current.length > 10) {
-        const cumulativeTranscript = transcriptAccumulatorRef.current;
-        console.log("[ActiveConsultationAI] 🤖 Final transcript - analyzing cumulative conversation...");
-        analyzeConsultationComprehensive(cumulativeTranscript).catch(err => {
-          console.error("[ActiveConsultationAI] ❌ Comprehensive analysis error:", err);
-          extractSymptomsAsync(cumulativeTranscript, true).catch(e => {
-            console.error("[ActiveConsultationAI] ❌ Symptom extraction fallback error:", e);
-          });
-        });
+      // Perform clinical analysis when final results come in (debounced)
+      if (result.isFinal && result.speaker === "patient") {
+        performClinicalAnalysis(transcript);
       }
     });
 
-    service.onError((error: Error & { code?: string; recoverable?: boolean }) => {
-      const code = error.code;
-      const recoverable = error.recoverable || (code ? RECOVERABLE_SPEECH_ERRORS.has(code) : false);
-      if (recoverable) {
-        console.warn("[ActiveConsultationAI] ⚠️ Recoverable speech recognition issue:", code, error.message);
-        return;
-      }
-
-      console.error("[ActiveConsultationAI] ❌ Speech recognition error:", error);
+    service.onError((error: Error) => {
+      console.error("[ActiveConsultationAI] Speech recognition error:", error);
       if (isMountedRef.current) {
-        setIsRecording(false);
-        toast.error("Speech recognition error", {
-          description: error.message || "Please try again or use manual input",
-        });
+        const errorCode = (error as any).code;
+        const isRecoverable = (error as any).recoverable;
+        
+        // Don't stop recording for recoverable errors (network, aborted, etc.)
+        // Only stop for critical errors (not-allowed, etc.)
+        if (errorCode === "not-allowed") {
+          setIsRecording(false);
+          toast.error("Microphone permission denied", {
+            description: "Please allow microphone access in your browser settings",
+          });
+        } else if (errorCode === "network") {
+          // Network errors are recoverable - show warning but don't stop
+          toast.warning("Network connection issue", {
+            description: "Attempting to reconnect... Speech recognition will continue automatically.",
+            duration: 3000,
+          });
+        } else if (!isRecoverable) {
+          // Only stop for non-recoverable errors
+          setIsRecording(false);
+          toast.error("Speech recognition error", {
+            description: error.message || "Please try again",
+          });
+        } else {
+          // Recoverable errors - just log, don't stop recording
+          console.log("[ActiveConsultationAI] Recoverable error, continuing...");
+        }
       }
     });
-  }, [analyzeConsultationComprehensive, extractSymptomsAsync]);
 
-  // Initialize Speech Recognition
-  useEffect(() => {
-    console.log("[ActiveConsultationAI] useEffect: Initializing speech recognition...");
-    console.log("[ActiveConsultationAI] SpeechRecognitionService:", SpeechRecognitionService);
-    console.log("[ActiveConsultationAI] isSupported check:", SpeechRecognitionService?.isSupported);
-    
-    if (!SpeechRecognitionService) {
-      console.error("[ActiveConsultationAI] SpeechRecognitionService is not imported!");
-      return;
-    }
-    
-    if (SpeechRecognitionService.isSupported()) {
-      console.log("[ActiveConsultationAI] Speech recognition supported");
-      
-      try {
-        const service = new SpeechRecognitionService({
-          language: "kn-IN", // Kannada (India) - priority
-          continuous: true,
-          interimResults: true,
-        });
-
-        attachSpeechServiceHandlers(service);
- 
-        speechRecognitionRef.current = service;
-        console.log("[Consultation] Speech recognition service initialized");
-      } catch (error) {
-        console.error("[Consultation] Failed to initialize speech recognition:", error);
-        toast.error("Failed to initialize speech recognition", {
-          description: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    } else {
-      console.warn("[Consultation] Speech recognition not supported");
-      toast.warning("Speech recognition not supported", {
-        description: "Please use Chrome or Edge browser. Using mock mode for testing.",
-      });
-    }
+    speechRecognitionRef.current = service;
 
     return () => {
-      console.log("[Consultation] Cleaning up speech recognition");
-      speechRecognitionRef.current?.stop();
-      finalChunksRef.current = [];
-      transcriptAccumulatorRef.current = "";
-      // Clear background timer if created
-      // (No-op if not set in certain browsers)
-      
-      // Clean up microphone stream
-      if (microphoneStreamRef.current) {
-        microphoneStreamRef.current.getTracks().forEach(track => track.stop());
-        microphoneStreamRef.current = null;
-      }
+      service.stop();
+      speechRecognitionRef.current = null;
     };
-  }, [attachSpeechServiceHandlers]);
+  }, [performClinicalAnalysis]);
 
-  // Component cleanup on unmount - prevents state updates after unmount
+  // Component cleanup on unmount
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
-      console.log("[ActiveConsultationAI] 🧹 COMPONENT UNMOUNTING - Cleaning up all resources");
       isMountedRef.current = false;
-      
-      // Stop speech recognition
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
-        speechRecognitionRef.current = null;
+      speechRecognitionRef.current?.stop();
+      if (analysisDebounceTimeoutRef.current) {
+        clearTimeout(analysisDebounceTimeoutRef.current);
       }
-      
-      // Stop microphone stream
-      if (microphoneStreamRef.current) {
-        microphoneStreamRef.current.getTracks().forEach(track => track.stop());
-        microphoneStreamRef.current = null;
-      }
-      
-      // No need to clean up button listener - using React onClick
-      
-      console.log("[ActiveConsultationAI] ✅ Cleanup complete");
     };
   }, []);
 
@@ -758,418 +612,124 @@ export default function ActiveConsultationAI() {
     checkPermission();
   }, []);
 
-  // Speech Recognition Handlers
+  // Start Recording
   const handleStartRecording = useCallback(async () => {
-    // CRITICAL: This log MUST appear when button is clicked
-    console.log("========================================");
-    console.log("========================================");
-    console.log("========================================");
-    console.log("🎤🎤🎤 BUTTON CLICKED - handleStartRecording CALLED! 🎤🎤🎤");
-    console.log("========================================");
-    console.log("========================================");
-    console.log("========================================");
-    console.log("[ACTIVE CONSULTATION] ===== STARTING RECORDING =====");
-    console.log("========================================");
-    console.log("[ACTIVE CONSULTATION] Current state:", {
-      currentSpeaker,
-      detectedLanguage,
-      isRecording,
-      hasService: !!speechRecognitionRef.current,
-      isSupported: SpeechRecognitionService.isSupported(),
-      micPermissionStatus,
-      hasMediaDevices: !!navigator.mediaDevices,
-      hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
-    });
-    console.log("========================================");
-    
-    // Prevent double-start
-    if (isRecording) {
-      console.warn("[ACTIVE CONSULTATION] ⚠️ Already recording, ignoring start request");
-      return;
-    }
-    
-    // Check browser support first
-    console.log("[ACTIVE CONSULTATION] Checking browser support...");
-    console.log("[ACTIVE CONSULTATION] SpeechRecognitionService.isSupported():", SpeechRecognitionService.isSupported());
-    
-    if (!SpeechRecognitionService.isSupported()) {
-      console.warn("========================================");
-      console.warn("[ACTIVE CONSULTATION] ⚠️ SPEECH RECOGNITION NOT SUPPORTED");
-      console.warn("========================================");
-      console.warn("[ACTIVE CONSULTATION] Browser does not support Web Speech API");
-      console.warn("[ACTIVE CONSULTATION] Please use Chrome or Edge browser");
-      console.warn("========================================");
-      toast.warning("Speech recognition not supported", {
-        description: "Please use Chrome or Edge browser. Using mock mode.",
-      });
-      // Still try to request permission - maybe user wants to use manual input
-    } else {
-      console.log("[ACTIVE CONSULTATION] ✅ Browser supports speech recognition");
-    }
-    
-    // ===== STEP 1: REQUEST MICROPHONE PERMISSION =====
-    console.log("========================================");
-    console.log("[MICROPHONE] 🎤 STEP 1: REQUESTING MICROPHONE PERMISSION");
-    console.log("========================================");
-    console.log("[MICROPHONE] navigator.mediaDevices:", navigator.mediaDevices);
-    console.log("[MICROPHONE] getUserMedia available:", !!navigator.mediaDevices?.getUserMedia);
-    console.log("[MICROPHONE] About to call getUserMedia...");
-    console.log("[MICROPHONE] This SHOULD trigger browser permission dialog!");
-    console.log("========================================");
-    
-    let stream: MediaStream | null = null;
-    
+    if (isRecording) return;
+
+    // Reset session for new conversation (unique session ID)
+    conversationSessionIdRef.current = `session-${Date.now()}`;
+    fullTranscriptRef.current = "";
+    lastAnalysisTranscriptRef.current = "";
+    setFullTranscript("");
+    setSymptoms("");
+    setDiagnosis("");
+    setAdvice("");
+    setClinicalAnalysis(null);
+
     try {
-      // Request microphone access - this MUST be called from user interaction
-      // This is the ONLY way to trigger browser permission dialog
-      console.log("[MICROPHONE] ========================================");
-      console.log("[MICROPHONE] 🎤 REQUESTING MICROPHONE PERMISSION");
-      console.log("[MICROPHONE] ========================================");
-      console.log("[MICROPHONE] Calling navigator.mediaDevices.getUserMedia({ audio: true })...");
-      console.log("[MICROPHONE] This should trigger browser permission dialog!");
-      console.log("[MICROPHONE] Waiting for user to grant/deny permission...");
-      console.log("[MICROPHONE] ========================================");
-      
-      // Show loading state
-      toast.loading("Requesting microphone permission...", {
-        id: "mic-permission",
-        duration: 5000,
-      });
-      
-      stream = await navigator.mediaDevices.getUserMedia({ 
+      // Request microphone permission
+      const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         }
       });
-      
-      console.log("========================================");
-      console.log("[MICROPHONE] ✅✅✅ PERMISSION GRANTED! ✅✅✅");
-      console.log("========================================");
-      console.log("[MICROPHONE] Stream received:", stream);
-      console.log("[MICROPHONE] Stream active:", stream.active);
-      console.log("[MICROPHONE] Stream id:", stream.id);
-      console.log("[MICROPHONE] Audio tracks count:", stream.getAudioTracks().length);
-      console.log("========================================");
-      
-      // Dismiss loading toast
-      toast.dismiss("mic-permission");
-      
-      // Store stream reference to keep it active during recording
-      microphoneStreamRef.current = stream;
+
       setMicPermissionStatus("granted");
       
-      // Log detailed track info
-      stream.getAudioTracks().forEach((track, idx) => {
-        console.log(`[MICROPHONE] Audio track ${idx}:`, {
-          enabled: track.enabled,
-          readyState: track.readyState,
-          label: track.label,
-          kind: track.kind,
-          id: track.id,
-          muted: track.muted,
-          settings: track.getSettings(),
-        });
-      });
-      
-      console.log("[MICROPHONE] ✅ Microphone stream is ACTIVE and READY for speech recognition");
-      console.log("========================================");
-      
-      toast.success("🎤 Microphone enabled", {
-        description: "Permission granted. Starting speech recognition...",
-        duration: 2000,
-      });
-      
-      // DO NOT stop tracks here - keep them active for speech recognition
-      // The speech recognition API needs the microphone to be active
-      
-    } catch (error: any) {
-      console.log("========================================");
-      console.error("[MICROPHONE] ❌❌❌ PERMISSION DENIED OR ERROR ❌❌❌");
-      console.log("========================================");
-      console.error("[MICROPHONE] Error name:", error.name);
-      console.error("[MICROPHONE] Error message:", error.message);
-      console.error("[MICROPHONE] Error code:", error.code);
-      console.error("[MICROPHONE] Full error:", error);
-      console.log("========================================");
-      
-      // Dismiss loading toast
-      toast.dismiss("mic-permission");
-      
-      setMicPermissionStatus("denied");
-      
-      let errorMessage = "Microphone permission is required for voice recording.";
-      let errorDescription = "Please allow microphone access and try again.";
-      
-      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        errorMessage = "Microphone permission denied";
-        errorDescription = "Please click the lock icon (🔒) in your browser's address bar and allow microphone access, then click 'Start Recording' again.";
-        console.error("[MICROPHONE] User denied permission or permission was previously denied");
-      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
-        errorMessage = "No microphone found";
-        errorDescription = "Please connect a microphone and try again.";
-        console.error("[MICROPHONE] No microphone device found on system");
-      } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
-        errorMessage = "Microphone is busy";
-        errorDescription = "Another application is using your microphone. Please close it and try again.";
-        console.error("[MICROPHONE] Microphone is being used by another application");
-      } else {
-        console.error("[MICROPHONE] Unknown error:", error);
-      }
-      
-      toast.error(errorMessage, {
-        description: errorDescription,
-        duration: 8000,
-      });
-      
-      setIsRecording(false);
-      return;
-    }
-    
-    // ===== STEP 2: INITIALIZE SPEECH RECOGNITION (only if permission granted) =====
-    if (!stream) {
-      console.error("[ACTIVE CONSULTATION] ❌ No stream available, cannot proceed");
-      return;
-    }
-
-    // ===== STEP 2: INITIALIZE SPEECH RECOGNITION (only if permission granted) =====
-    console.log("========================================");
-    console.log("[SPEECH RECOGNITION] 🎙️ STEP 2: INITIALIZING SPEECH RECOGNITION");
-    console.log("========================================");
-    console.log("[SPEECH RECOGNITION] Service already exists:", !!speechRecognitionRef.current);
-    
-    // If service not initialized, try to initialize it now
-    if (!speechRecognitionRef.current) {
-      console.log("[SPEECH RECOGNITION] ⚠️ Service not initialized, creating new service...");
-      try {
-        console.log("[SPEECH RECOGNITION] Creating SpeechRecognitionService with config:", {
-          language: "kn-IN",
-          continuous: true,
-          interimResults: true,
-        });
+      // Start speech recognition
+      if (speechRecognitionRef.current) {
+        // CRITICAL: Set language BEFORE starting (especially important for Urdu)
+        speechRecognitionRef.current.setLanguage(detectedLanguage);
         
-        const service = new SpeechRecognitionService({
-          language: "kn-IN",
-          continuous: true,
-          interimResults: true,
-        });
+        // Small delay to ensure language is properly set before starting (helps with Urdu)
+        await new Promise(resolve => setTimeout(resolve, 50));
         
-        console.log("[SPEECH RECOGNITION] ✅ Service created:", service);
-
-        attachSpeechServiceHandlers(service);
- 
-        speechRecognitionRef.current = service;
-        console.log("[SPEECH RECOGNITION] ✅ Service initialized and stored in ref");
-      } catch (initError) {
-        console.error("========================================");
-        console.error("[SPEECH RECOGNITION] ❌ FAILED TO INITIALIZE SERVICE");
-        console.error("========================================");
-        console.error("[SPEECH RECOGNITION] Error:", initError);
-        console.error("========================================");
-        // Fall through to mock mode
-      }
-    } else {
-      console.log("[SPEECH RECOGNITION] ✅ Service already exists, using existing service");
-    }
-    
-    console.log("[SPEECH RECOGNITION] Final service check:", !!speechRecognitionRef.current);
-    console.log("========================================");
-
-    // If still no service, use mock mode (ONLY if permission was granted but service failed)
-    if (!speechRecognitionRef.current) {
-      console.warn("========================================");
-      console.warn("[ACTIVE CONSULTATION] ⚠️ SPEECH RECOGNITION SERVICE NOT AVAILABLE");
-      console.warn("========================================");
-      console.warn("[ACTIVE CONSULTATION] Permission was granted but service initialization failed");
-      console.warn("[ACTIVE CONSULTATION] Falling back to mock mode for testing");
-      console.warn("========================================");
-      
-      // Only use mock mode if we have permission (otherwise user should see error)
-      if (micPermissionStatus === "granted" || stream) {
+        speechRecognitionRef.current.start(currentSpeaker);
         setIsRecording(true);
-        toast.info("Mock mode: Speech recognition not available", {
-          description: "Using simulated transcription for testing",
-        });
         
-        // Simulate transcript after 2 seconds and auto-extract symptoms
-        setTimeout(() => {
-          const mockTranscript = "Patient reports headache, fever, and body pain for the last 3 days. Also experiencing fatigue and loss of appetite.";
-          console.log("[ActiveConsultationAI] 🎭 Mock transcript generated:", mockTranscript);
-          setFullTranscript(mockTranscript);
-          toast.success("Mock transcript generated", {
-            description: "This is simulated data for testing",
+        // Special message for Urdu
+        if (detectedLanguage === "urdu") {
+          toast.success("🎤 Recording started - Urdu (اردو)", {
+            description: "Listening in Urdu. Speak clearly for best recognition.",
+            duration: 3000,
           });
-          // Use comprehensive AI analysis for mock transcript
-          console.log("[ActiveConsultationAI] 🎭 Using comprehensive AI analysis for mock transcript");
-          analyzeConsultationComprehensive(mockTranscript).catch(err => {
-            console.error("[ActiveConsultationAI] ❌ Mock analysis failed, using fallback:", err);
-            extractSymptomsAsync(mockTranscript, true);
+        } else {
+          toast.success("🎤 Recording started", {
+            description: `Listening in ${detectedLanguage.charAt(0).toUpperCase() + detectedLanguage.slice(1)}. AI optimized for this language.`,
           });
-        }, 2000);
-        return;
+        }
       } else {
-        // No permission, don't use mock mode - show error instead
-        console.error("[ACTIVE CONSULTATION] ❌ Cannot proceed: No permission and no service");
-        return;
+        throw new Error("Speech recognition not initialized");
       }
-    }
 
-    // ===== STEP 3: START SPEECH RECOGNITION =====
-    console.log("========================================");
-    console.log("[SPEECH RECOGNITION] 🎙️ STEP 3: STARTING SPEECH RECOGNITION");
-    console.log("========================================");
-    console.log("[SPEECH RECOGNITION] Service available:", !!speechRecognitionRef.current);
-    console.log("[SPEECH RECOGNITION] Microphone stream active:", !!microphoneStreamRef.current);
-    console.log("[SPEECH RECOGNITION] Current speaker:", currentSpeaker);
-    console.log("[SPEECH RECOGNITION] Language:", detectedLanguage);
-    
-    // Start the actual recording
-    try {
-      if (!speechRecognitionRef.current) {
-        throw new Error("Speech recognition service not initialized");
-      }
-      
-      console.log("[SPEECH RECOGNITION] Calling service.start()...");
-      speechRecognitionRef.current.start(currentSpeaker);
-      
-      setIsRecording(true);
-      
-      console.log("========================================");
-      console.log("[SPEECH RECOGNITION] ✅✅✅ RECORDING STARTED! ✅✅✅");
-      console.log("========================================");
-      console.log("[SPEECH RECOGNITION] isRecording:", true);
-      console.log("[SPEECH RECOGNITION] Microphone stream:", microphoneStreamRef.current?.active);
-      console.log("[SPEECH RECOGNITION] Ready to capture voice!");
-      console.log("========================================");
-      
-      toast.success("🎤 AI listening started", {
-        description: `Recording as ${currentSpeaker} in ${detectedLanguage}. Speak clearly into your microphone.`,
-        duration: 3000,
-      });
+      // Stop the stream (we just needed permission)
+      stream.getTracks().forEach(track => track.stop());
     } catch (error: any) {
-      console.error("[ActiveConsultationAI] ❌ Start failed:", {
-        error: error.message,
-        name: error.name,
-        code: error.code,
-        stack: error.stack,
+      console.error("[ActiveConsultationAI] Start recording failed:", error);
+      setMicPermissionStatus("denied");
+      setIsRecording(false);
+      toast.error("Microphone permission required", {
+        description: "Please allow microphone access to record",
       });
-      
-      // Fallback to mock mode
-      console.log("[ActiveConsultationAI] Falling back to mock mode...");
-      setIsRecording(true);
-      toast.warning("Using mock mode", {
-        description: "Speech recognition unavailable. Using simulated data.",
-      });
-      
-      setTimeout(() => {
-        const mockTranscript = "Patient reports headache, fever, and body pain for the last 3 days. Also experiencing fatigue and loss of appetite.";
-        console.log("[ActiveConsultationAI] 🎭 Mock transcript (fallback):", mockTranscript);
-        setFullTranscript(mockTranscript);
-        // Use comprehensive AI analysis for mock transcript
-        console.log("[ActiveConsultationAI] 🎭 Using comprehensive AI analysis for mock transcript (fallback)");
-        analyzeConsultationComprehensive(mockTranscript).catch(err => {
-          console.error("[ActiveConsultationAI] ❌ Mock analysis failed, using fallback:", err);
-          extractSymptomsAsync(mockTranscript, true);
-        });
-      }, 2000);
     }
-  }, [currentSpeaker, detectedLanguage, micPermissionStatus, analyzeConsultationComprehensive, extractSymptomsAsync]);
+  }, [isRecording, currentSpeaker, detectedLanguage]);
 
+  // Stop Recording
   const handleStopRecording = useCallback(() => {
-    console.log("[ActiveConsultationAI] ===== STOPPING RECORDING =====");
-    console.log("[ActiveConsultationAI] Recording duration:", recordingTime, "seconds");
-    console.log("[ActiveConsultationAI] Final transcript length:", fullTranscript.length);
+    speechRecognitionRef.current?.stop();
+    setIsRecording(false);
     
-    try {
-      // Stop speech recognition
-      speechRecognitionRef.current?.stop();
-      
-      // Stop and release microphone stream
-      if (microphoneStreamRef.current) {
-        console.log("[ActiveConsultationAI] Stopping microphone stream...");
-        microphoneStreamRef.current.getTracks().forEach(track => {
-          track.stop();
-          console.log("[ActiveConsultationAI] Microphone track stopped:", track.label);
-        });
-        microphoneStreamRef.current = null;
-      }
-      
-      setIsRecording(false);
-      console.log("[ActiveConsultationAI] ✅ Recording stopped successfully");
-      toast.info("AI listening stopped", {
-        description: `Recorded ${Math.floor(recordingTime / 60)}:${String(recordingTime % 60).padStart(2, '0')}`,
-      });
-    } catch (error) {
-      console.error("[ActiveConsultationAI] ❌ Stop failed:", error);
-      setIsRecording(false);
-      
-      // Clean up stream even on error
-      if (microphoneStreamRef.current) {
-        microphoneStreamRef.current.getTracks().forEach(track => track.stop());
-        microphoneStreamRef.current = null;
-      }
-      
-      toast.warning("Recording stopped with errors");
+    // Final analysis on stop
+    if (fullTranscriptRef.current.length > 10) {
+      performClinicalAnalysis(fullTranscriptRef.current, true);
     }
-  }, [recordingTime, fullTranscript]);
 
+    toast.info("Recording stopped", {
+      description: `Recorded ${Math.floor(recordingTime / 60)}:${String(recordingTime % 60).padStart(2, '0')}`,
+    });
+  }, [recordingTime, performClinicalAnalysis]);
+
+  // Switch Speaker
   const handleSwitchSpeaker = () => {
     const newSpeaker = currentSpeaker === "patient" ? "doctor" : "patient";
-    console.log("[ActiveConsultationAI] Switching speaker", {
-      from: currentSpeaker,
-      to: newSpeaker,
-    });
     setCurrentSpeaker(newSpeaker);
     speechRecognitionRef.current?.switchSpeaker(newSpeaker);
     toast.info(`Switched to ${newSpeaker} mode`);
   };
 
-  // Medicine Handlers - Enhanced with AI dosage recommendations
+  // Medicine Handlers
   const handleSelectMedicine = async (medicine: Medicine) => {
-    console.log("[ActiveConsultationAI] Medicine selected:", medicine);
     setSelectedMedicine(medicine);
     setShowMedicineSearch(false);
     setMedicineSearchQuery(medicine.name);
     
-    // Show loading state
     setIsLoadingDosage(true);
-    toast.loading("Getting AI dosage recommendations...", {
-      id: "dosage-recommendation",
-      duration: 5000,
-    });
-    
     try {
-      // Get AI-powered dosage recommendation
-      const recommendation = await getDosageRecommendation(
+      const structure = await getMedicinePrescriptionStructure(
         medicine.name,
-        medicine.genericName,
-        patient.age,
-        diagnosis,
-        symptomsEnglish || symptoms
+        diagnosis || clinicalAnalysis?.diagnosis.primary || "",
+        patient.age
       );
       
-      console.log("[ActiveConsultationAI] ✅ AI dosage recommendation received:", recommendation);
-      
-      // Store recommendation for display
-      setAiDosageRecommendation(recommendation);
-      
-      // Update medicine form with AI recommendations (doctor can edit these)
       setMedicineForm(prev => ({
         ...prev,
-        timing: recommendation.timing,
-        food: recommendation.food,
-        duration: recommendation.duration,
-        quantity: recommendation.quantity,
-        dosage: recommendation.dosage,
+        timing: structure.timing,
+        food: structure.foodTiming,
+        duration: structure.duration,
+        quantity: structure.quantity,
+        dosage: structure.dosage,
       }));
-      
-      // Dismiss loading toast
-      toast.dismiss("dosage-recommendation");
-      
-      toast.success("AI dosage recommended", {
-        description: `${recommendation.dosage} - ${recommendation.frequency} (${recommendation.timing.join(", ")})`,
-        duration: 3000,
+
+      setAiDosageRecommendation({
+        dosage: structure.dosage,
+        frequency: structure.frequency,
+        timing: structure.timing,
+        food: structure.foodTiming,
+        duration: structure.duration,
+        quantity: structure.quantity,
+        reasoning: structure.instructions,
       });
     } catch (error) {
       console.error("[ActiveConsultationAI] ❌ Dosage recommendation failed:", error);
@@ -1383,8 +943,6 @@ export default function ActiveConsultationAI() {
   console.log("[ActiveConsultationAI] isRecording:", isRecording);
   console.log("[ActiveConsultationAI] handleStartRecording type:", typeof handleStartRecording);
   console.log("[ActiveConsultationAI] handleStopRecording type:", typeof handleStopRecording);
-  console.log("[ActiveConsultationAI] handleTestAI function:", typeof handleTestAI);
-  console.log("[ActiveConsultationAI] extractSymptoms function:", typeof extractSymptoms);
   console.log("[ActiveConsultationAI] SpeechRecognitionService:", typeof SpeechRecognitionService);
   console.log("========================================");
 
@@ -1484,6 +1042,79 @@ export default function ActiveConsultationAI() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col items-center justify-center py-6 space-y-4">
+                {/* Language Selector - Prominent and Easy to Use */}
+                <div className="w-full max-w-md mx-auto">
+                  <Label className="text-sm font-medium mb-2 block text-center">
+                    Select Patient Language
+                  </Label>
+                  <Select
+                    value={detectedLanguage}
+                    onValueChange={(value: "kannada" | "hindi" | "telugu" | "urdu" | "tamil" | "english") => {
+                      setDetectedLanguage(value);
+                      speechRecognitionRef.current?.setLanguage(value);
+                      
+                      // Special message for Urdu with tips
+                      if (value === "urdu") {
+                        toast.info(`Language set to Urdu (اردو)`, {
+                          description: "For best results, speak clearly and ensure stable internet connection",
+                          duration: 4000,
+                        });
+                      } else {
+                        toast.info(`Language set to ${value.charAt(0).toUpperCase() + value.slice(1)}`, {
+                          description: "AI will now optimize for this language",
+                        });
+                      }
+                    }}
+                    disabled={isRecording}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="kannada">
+                        <div className="flex items-center gap-2">
+                          <span>🇮🇳</span>
+                          <span>ಕನ್ನಡ (Kannada)</span>
+                          <Badge variant="outline" className="ml-auto text-xs">Primary</Badge>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="telugu">
+                        <div className="flex items-center gap-2">
+                          <span>🇮🇳</span>
+                          <span>తెలుగు (Telugu)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="hindi">
+                        <div className="flex items-center gap-2">
+                          <span>🇮🇳</span>
+                          <span>हिंदी (Hindi)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="urdu">
+                        <div className="flex items-center gap-2">
+                          <span>🇮🇳</span>
+                          <span>اردو (Urdu)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="tamil">
+                        <div className="flex items-center gap-2">
+                          <span>🇮🇳</span>
+                          <span>தமிழ் (Tamil)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="english">
+                        <div className="flex items-center gap-2">
+                          <span>🇬🇧</span>
+                          <span>English</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1 text-center">
+                    Select the language your patient will speak before starting recording
+                  </p>
+                </div>
+
                 {/* Status Display */}
                 <div className="text-center">
                   <p className="text-lg font-semibold mb-1">
@@ -1602,22 +1233,42 @@ export default function ActiveConsultationAI() {
                 )}
               </div>
               
-              {fullTranscript && (
-                <div className="border rounded-lg p-3 bg-muted/30">
-                  <p className="text-xs text-muted-foreground mb-1">Live Transcript:</p>
-                  <p className="text-sm">{fullTranscript}</p>
-                </div>
-              )}
-              
-              {!fullTranscript && isRecording && (
-                <div className="border rounded-lg p-3 bg-muted/30">
-                  <p className="text-xs text-muted-foreground mb-1">Status:</p>
-                  <p className="text-sm flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Listening... Speak clearly into your microphone
-                  </p>
-                </div>
-              )}
+              {/* Large Live Transcript Display - Maximized Space */}
+              <div className="border-2 rounded-lg p-3 bg-muted/30 min-h-[350px] max-h-[600px] overflow-y-auto">
+                <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+                  <Mic className="h-3 w-3" />
+                  Live Transcript {isRecording && <span className="animate-pulse text-green-600 text-xs">●</span>}
+                </p>
+                {fullTranscript ? (
+                  <div className="space-y-1">
+                    <p className="text-xs leading-relaxed whitespace-pre-wrap break-words font-mono">
+                      {fullTranscript}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1 pt-1 border-t">
+                      {fullTranscript.split(/\s+/).length} words • {fullTranscript.length} characters
+                    </p>
+                  </div>
+                ) : isRecording ? (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mb-2" />
+                    <p className="text-xs text-muted-foreground">
+                      Listening... Speak clearly into your microphone
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      The transcript will appear here as you speak
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Click "Start Recording" to begin transcription
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      This area will display the complete patient conversation
+                    </p>
+                  </div>
+                )}
+              </div>
               
               {!SpeechRecognitionService.isSupported() && (
                 <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
@@ -1632,7 +1283,7 @@ export default function ActiveConsultationAI() {
                         Speech recognition not supported in this browser
                       </p>
                       <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                        Please use Chrome or Edge browser for voice recognition. Mock mode will be used for testing.
+                        Please use Chrome or Edge browser for voice recognition.
                       </p>
                       <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
                         You can still use manual input for symptoms and diagnosis.

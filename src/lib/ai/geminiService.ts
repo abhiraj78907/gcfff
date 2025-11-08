@@ -64,7 +64,7 @@ export interface PrescriptionFormatData {
  */
 export async function extractSymptoms(
   transcript: string,
-  language: "kannada" | "hindi" | "telugu" | "english" = "kannada"
+  language: "kannada" | "hindi" | "telugu" | "urdu" | "tamil" | "english" = "kannada"
 ): Promise<SymptomExtractionResult> {
   console.log("[GeminiService] 🔍 Extracting symptoms with regional language support...", {
     transcriptLength: transcript.length,
@@ -77,6 +77,8 @@ export async function extractSymptoms(
       kannada: "Kannada",
       telugu: "Telugu",
       hindi: "Hindi",
+      urdu: "Urdu",
+      tamil: "Tamil",
       english: "English"
     };
     
@@ -342,6 +344,7 @@ export async function extractSymptoms(
     return {
       symptoms: fallbackSymptoms.length > 0 ? fallbackSymptoms : ["Headache", "Fever", "Body pain"],
       symptomsEnglish: fallbackSymptoms.length > 0 ? fallbackSymptoms : ["Headache", "Fever", "Body pain"],
+      symptomsNative: [],
       confidence: 0.7,
       language: language,
     };
@@ -349,6 +352,8 @@ export async function extractSymptoms(
     console.error("[Gemini] Symptom extraction failed:", error);
     return {
       symptoms: [],
+      symptomsEnglish: [],
+      symptomsNative: [],
       confidence: 0,
     };
   }
@@ -360,7 +365,7 @@ export async function extractSymptoms(
 export async function suggestDiagnosis(
   symptoms: string[],
   transcript: string,
-  language: "kannada" | "hindi" | "telugu" | "english" = "kannada"
+  language: "kannada" | "hindi" | "telugu" | "urdu" | "tamil" | "english" = "kannada"
 ): Promise<DiagnosisSuggestion[]> {
   try {
     const prompt = `You are a medical AI assistant. Based on the following symptoms and conversation context in ${language}, suggest probable diagnoses.
@@ -647,9 +652,9 @@ export async function formatPrescription(
 /**
  * Detect language from text
  */
-export async function detectLanguage(text: string): Promise<"kannada" | "hindi" | "telugu" | "english"> {
+export async function detectLanguage(text: string): Promise<"kannada" | "hindi" | "telugu" | "urdu" | "tamil" | "english"> {
   try {
-    const prompt = `Detect the primary language of this text. Return only one word: "kannada", "hindi", "telugu", or "english".
+    const prompt = `Detect the primary language of this text. Return only one word: "kannada", "hindi", "telugu", "urdu", "tamil", or "english".
     Priority: If Kannada is detected, return "kannada". Otherwise return the most likely language.
     
     Text: ${text.substring(0, 200)}`;
@@ -745,6 +750,8 @@ export async function detectLanguage(text: string): Promise<"kannada" | "hindi" 
     if (detected.includes("kannada")) return "kannada";
     if (detected.includes("hindi")) return "hindi";
     if (detected.includes("telugu")) return "telugu";
+    if (detected.includes("urdu")) return "urdu";
+    if (detected.includes("tamil")) return "tamil";
     return "english";
   } catch (error) {
     console.error("[Gemini] Language detection failed:", error);
