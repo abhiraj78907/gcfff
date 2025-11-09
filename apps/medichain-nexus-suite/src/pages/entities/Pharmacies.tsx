@@ -243,32 +243,32 @@ const Pharmacies = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6">
+      <div className="grid gap-6">
           {filteredEntities.map((entity) => (
             <Card 
               key={entity.id} 
               className="hover:shadow-lg transition-shadow"
             >
-              <CardHeader>
+            <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-lg bg-accent/10">
-                      <Pill className="h-6 w-6 text-accent" />
-                    </div>
+                    <Pill className="h-6 w-6 text-accent" />
+                  </div>
                     <div>
                       <CardTitle className="text-xl">{entity.name}</CardTitle>
                       <CardDescription className="flex items-center gap-1 mt-1">
                         <MapPin className="h-3 w-3" />
                         {entity.subEntries?.[0]?.location || "Location not set"}
-                      </CardDescription>
+                    </CardDescription>
                     </div>
                   </div>
                   <Badge variant={entity.status === "active" ? "default" : "secondary"}>
                     {entity.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
                 <div className="grid grid-cols-4 gap-4 mb-4">
                   <div className="text-center p-3 bg-muted rounded-lg">
                     <Package className="h-4 w-4 mx-auto mb-1 text-primary" />
@@ -280,12 +280,12 @@ const Pharmacies = () => {
                     <p className="text-lg font-bold">Good</p>
                     <p className="text-xs text-muted-foreground">Stock Level</p>
                   </div>
-                  <div className="text-center p-3 bg-muted rounded-lg">
+                <div className="text-center p-3 bg-muted rounded-lg">
                     <Pill className="h-4 w-4 mx-auto mb-1 text-accent" />
                     <p className="text-lg font-bold">-</p>
                     <p className="text-xs text-muted-foreground">Medicines</p>
-                  </div>
-                  <div className="text-center p-3 bg-muted rounded-lg">
+                </div>
+                <div className="text-center p-3 bg-muted rounded-lg">
                     <Phone className="h-4 w-4 mx-auto mb-1 text-info" />
                     <p className="text-xs text-muted-foreground mt-1">{entity.subEntries?.[0]?.phone || "N/A"}</p>
                   </div>
@@ -304,11 +304,11 @@ const Pharmacies = () => {
                     <Trash2 className="h-4 w-4 mr-1" />
                     Delete
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
       )}
 
       {/* Add/Edit Dialog */}

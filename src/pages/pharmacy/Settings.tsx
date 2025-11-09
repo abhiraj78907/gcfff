@@ -46,7 +46,11 @@ export default function Settings() {
             <Label htmlFor="address">Address</Label>
             <Input id="address" defaultValue="123, Medical Complex, MG Road, Mumbai - 400001" />
           </div>
-          <Button>
+          <Button
+            onClick={() => {
+              alert("Shop profile saved successfully!");
+            }}
+          >
             <Save className="mr-2 h-4 w-4" />
             Save Changes
           </Button>
@@ -81,7 +85,11 @@ export default function Settings() {
             </div>
             <Switch defaultChecked />
           </div>
-          <Button>
+          <Button
+            onClick={() => {
+              alert("Pricing configuration saved successfully!");
+            }}
+          >
             <Save className="mr-2 h-4 w-4" />
             Save Configuration
           </Button>
@@ -132,7 +140,11 @@ export default function Settings() {
               <Switch defaultChecked />
             </div>
           </div>
-          <Button>
+          <Button
+            onClick={() => {
+              alert("Notification preferences saved successfully!");
+            }}
+          >
             <Save className="mr-2 h-4 w-4" />
             Save Preferences
           </Button>

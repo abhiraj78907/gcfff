@@ -106,8 +106,8 @@ const Settings = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Settings</h1>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground mb-2">Settings</h1>
           <p className="text-muted-foreground">Manage your application preferences and configuration</p>
         </div>
         <Button 
@@ -222,7 +222,16 @@ const Settings = () => {
                   }}
                 />
               </div>
-            <Button variant="outline" className="w-full" onClick={handleChangePassword}>
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => {
+                toast({
+                  title: "Change Password",
+                  description: "Password change functionality will be available soon. Please contact your administrator.",
+                });
+              }}
+            >
               Change Password
             </Button>
           </CardContent>

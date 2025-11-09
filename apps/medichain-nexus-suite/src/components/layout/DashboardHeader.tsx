@@ -42,7 +42,7 @@ export const DashboardHeader = () => {
   const handleLogout = () => {
     try {
       // Call logout function to clear auth state
-      logout();
+    logout();
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -54,7 +54,7 @@ export const DashboardHeader = () => {
   };
 
   const handleSettings = () => {
-    navigate("/settings");
+    navigate("/dashboard/admin/settings");
   };
 
   const handleNotificationClick = (alertId: string) => {
@@ -100,6 +100,14 @@ export const DashboardHeader = () => {
           <Input
             placeholder="Search entities, users, reports..."
             className="pl-10 bg-muted border-muted-foreground/20"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const query = (e.target as HTMLInputElement).value;
+                if (query.trim()) {
+                  navigate(`/dashboard/admin?search=${encodeURIComponent(query)}`);
+                }
+              }
+            }}
           />
         </div>
       </div>
@@ -108,14 +116,14 @@ export const DashboardHeader = () => {
         {/* Notifications Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-destructive text-destructive-foreground text-xs">
                   {unreadCount > 9 ? "9+" : unreadCount}
-                </Badge>
+          </Badge>
               )}
-            </Button>
+        </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
             <DropdownMenuLabel className="flex items-center justify-between">
@@ -169,7 +177,7 @@ export const DashboardHeader = () => {
               )}
             </ScrollArea>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/alerts")} className="cursor-pointer">
+            <DropdownMenuItem onClick={() => navigate("/dashboard/admin/alerts")} className="cursor-pointer">
               <span className="text-sm">View all alerts</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

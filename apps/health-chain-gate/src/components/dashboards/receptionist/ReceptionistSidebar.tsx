@@ -1,5 +1,5 @@
 import { Home, UserPlus, Users, Calendar, Stethoscope, CreditCard, Settings as SettingsIcon } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -14,16 +14,21 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
-  { title: "Dashboard", url: "/dashboard/receptionist", icon: Home },
-  { title: "Patient Registration", url: "/dashboard/receptionist/register", icon: UserPlus },
-  { title: "Today's Queue", url: "/dashboard/receptionist/queue", icon: Users },
-  { title: "Appointments", url: "/dashboard/receptionist/appointments", icon: Calendar },
-  { title: "Doctor Status", url: "/dashboard/receptionist/doctors", icon: Stethoscope },
-  { title: "Billing", url: "/dashboard/receptionist/billing", icon: CreditCard },
-  { title: "Settings", url: "/dashboard/receptionist/settings", icon: SettingsIcon },
+  { title: "Dashboard", path: "", icon: Home },
+  { title: "Patient Registration", path: "/register", icon: UserPlus },
+  { title: "Today's Queue", path: "/queue", icon: Users },
+  { title: "Appointments", path: "/appointments", icon: Calendar },
+  { title: "Doctor Status", path: "/doctors", icon: Stethoscope },
+  { title: "Billing", path: "/billing", icon: CreditCard },
+  { title: "Settings", path: "/settings", icon: SettingsIcon },
 ];
 
 export function ReceptionistSidebar() {
+  const location = useLocation();
+  const basePath = location.pathname.includes("/dashboard/receptionist") 
+    ? "/dashboard/receptionist" 
+    : "/receptionist";
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b p-4">
@@ -49,8 +54,8 @@ export function ReceptionistSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to={item.url}
-                      end
+                      to={`${basePath}${item.path}`}
+                      end={item.path === ""}
                       className={({ isActive }) =>
                         isActive ? "bg-accent text-accent-foreground" : ""
                       }

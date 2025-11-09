@@ -105,15 +105,49 @@ const Prescriptions = () => {
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" className="flex-1">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex-1"
+            onClick={() => {
+              alert(`Prescription Details:\nDate: ${prescription.date}\nDoctor: ${prescription.doctorName}\nDiagnosis: ${prescription.diagnosis}`);
+            }}
+          >
             <Eye className="w-4 h-4 mr-2" />
             View
           </Button>
-          <Button variant="outline" size="sm" className="flex-1">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex-1"
+            onClick={() => {
+              const blob = new Blob([`Prescription: ${prescription.diagnosis}\nDoctor: ${prescription.doctorName}\nDate: ${prescription.date}`], { type: "application/pdf" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `prescription-${prescription.id}.pdf`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
             <Download className="w-4 h-4 mr-2" />
             Download
           </Button>
-          <Button variant="outline" size="sm" className="flex-1">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex-1"
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({
+                  title: 'Prescription',
+                  text: `Prescription from ${prescription.doctorName} on ${prescription.date}`,
+                });
+              } else {
+                alert("Share functionality - Copy link to clipboard");
+              }
+            }}
+          >
             <Share2 className="w-4 h-4 mr-2" />
             Share
           </Button>

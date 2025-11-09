@@ -19,24 +19,47 @@ export async function getNextToken(
   const counterPath = TOKEN_COUNTER_PATH(entityId, subEntryId);
   const counterRef = doc(db, counterPath);
 
+  // First, try to use setDoc with merge (handles both create and update)
+  // This is more reliable than transactions for this use case
   try {
-    const result = await runTransaction(db, async (transaction) => {
-      const counterSnap = await transaction.get(counterRef);
-      const current = counterSnap.exists()
-        ? (counterSnap.data().value as number)
-        : 0;
-      const next = current + 1;
+    const counterSnap = await getDoc(counterRef);
+    const current = counterSnap.exists() 
+      ? (counterSnap.data()?.value as number) || 0 
+      : 0;
+    const next = current + 1;
+    
+    // Use setDoc with merge to handle both create and update
+    await setDoc(counterRef, { 
+      value: next, 
+      updatedAt: Date.now() 
+    }, { merge: true });
+    
+    return String(next);
+  } catch (error: any) {
+    // If setDoc fails, try transaction as fallback
+    try {
+      const result = await runTransaction(db, async (transaction) => {
+        const counterSnap = await transaction.get(counterRef);
+        const current = counterSnap.exists()
+          ? (counterSnap.data()?.value as number) || 0
+          : 0;
+        const next = current + 1;
 
-      transaction.set(counterRef, { value: next, updatedAt: Date.now() }, { merge: true });
+        // Always use set with merge in transaction
+        transaction.set(counterRef, { 
+          value: next, 
+          updatedAt: Date.now() 
+        }, { merge: true });
 
-      return String(next);
-    });
+        return String(next);
+      });
 
-    return result;
-  } catch (error) {
-    console.error("[tokenService] Transaction failed:", error);
-    // Fallback: generate timestamp-based token
-    return String(Date.now()).slice(-6);
+      return result;
+    } catch (transactionError: any) {
+      console.error("[tokenService] Transaction also failed:", transactionError);
+      // Final fallback: generate timestamp-based token
+      return String(Date.now()).slice(-6);
+    }
   }
 }
 

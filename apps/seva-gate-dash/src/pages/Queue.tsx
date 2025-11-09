@@ -151,15 +151,34 @@ const Queue = () => {
                       </Badge>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          alert(`Patient Details:\nName: ${patient.name}\nToken: ${patient.token}\nDepartment: ${patient.department}\nStatus: ${patient.status}`);
+                        }}
+                      >
                         <User className="mr-1 h-3 w-3" />
                         View Details
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          window.location.href = `tel:${patient.phone || "+91 9876543210"}`;
+                        }}
+                      >
                         <Phone className="mr-1 h-3 w-3" />
                         Call Patient
                       </Button>
-                      <Button size="sm">Transfer</Button>
+                      <Button 
+                        size="sm"
+                        onClick={() => {
+                          alert(`Transferring ${patient.name} to another department...`);
+                        }}
+                      >
+                        Transfer
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -213,7 +232,14 @@ const Queue = () => {
                           <Phone className="mr-1 h-3 w-3" />
                           Call Patient
                         </Button>
-                        <Button size="sm">Transfer</Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            alert(`Transferring ${patient.name} to another department...`);
+                          }}
+                        >
+                          Transfer
+                        </Button>
                       </div>
                     </div>
                   </div>

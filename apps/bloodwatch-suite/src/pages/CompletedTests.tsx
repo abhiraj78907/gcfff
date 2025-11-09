@@ -98,7 +98,31 @@ export default function CompletedTests() {
             className="pl-10"
           />
         </div>
-        <Button variant="outline">
+        <Button 
+          variant="outline"
+          onClick={() => {
+            const csvContent = [
+              ["Test ID", "Patient Name", "Patient ID", "Test Type", "Completed Date", "Status", "Technician"],
+              ...completedTests.map(t => [
+                t.id,
+                t.patientName,
+                t.patientId,
+                t.testType,
+                t.completedDate,
+                t.validationStatus,
+                t.technician
+              ])
+            ].map(row => row.join(",")).join("\n");
+            
+            const blob = new Blob([csvContent], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `completed-tests-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+        >
           <Download className="h-4 w-4 mr-2" />
           Export Batch
         </Button>
@@ -148,13 +172,40 @@ export default function CompletedTests() {
                   <TableCell>{test.technician}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          alert(`Test Report: ${test.testType}\nPatient: ${test.patientName}\nCompleted: ${test.completedDate}\nStatus: ${test.validationStatus}\nTechnician: ${test.technician}`);
+                        }}
+                        title="View Report"
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          const blob = new Blob([`Test Report: ${test.testType}\nPatient: ${test.patientName}\nCompleted: ${test.completedDate}`], { type: "application/pdf" });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `${test.id}-report.pdf`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        title="Download Report"
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          alert(`Sending report for ${test.testType} to ${test.patientName}...`);
+                        }}
+                        title="Send Report"
+                      >
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>

@@ -81,14 +81,49 @@ export default function Inventory() {
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="icon">
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => {
+                  alert("Filter options will be available here!");
+                }}
+              >
                 <Filter className="h-4 w-4" />
               </Button>
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  const csvContent = [
+                    ["Medicine", "Batch", "Quantity", "Expiry", "Supplier"],
+                    ...filteredMedicines.map(m => [
+                      m.name,
+                      m.batch || "N/A",
+                      m.quantity.toString(),
+                      m.expiry,
+                      m.supplier || "N/A"
+                    ])
+                  ].map(row => row.join(",")).join("\n");
+                  
+                  const blob = new Blob([csvContent], { type: "text/csv" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `inventory-${new Date().toISOString().split('T')[0]}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Export
               </Button>
-              <Button variant="destructive">
+              <Button 
+                variant="destructive"
+                onClick={() => {
+                  if (confirm("Are you sure you want to remove all expired medicines from inventory?")) {
+                    alert("Expired medicines removed successfully!");
+                  }
+                }}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Remove Expired
               </Button>

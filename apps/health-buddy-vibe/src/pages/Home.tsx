@@ -132,7 +132,14 @@ const Home = () => {
             <h1 className="text-xl md:text-2xl font-bold text-foreground">Medicine Tracker</h1>
             <p className="text-sm text-muted-foreground">Stay on track with your health</p>
           </div>
-          <Button variant="ghost" size="icon" className="md:hidden">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden"
+            onClick={() => {
+              window.location.href = "/patient/settings";
+            }}
+          >
             <Settings className="w-5 h-5" />
           </Button>
         </div>

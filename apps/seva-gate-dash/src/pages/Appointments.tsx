@@ -212,7 +212,15 @@ const Appointments = () => {
                 <Button variant="outline" onClick={() => setIsBookingModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={() => setIsBookingModalOpen(false)}>Confirm Booking</Button>
+                <Button 
+                  onClick={() => {
+                    // Handle booking confirmation
+                    alert("Appointment booked successfully!");
+                    setIsBookingModalOpen(false);
+                  }}
+                >
+                  Confirm Booking
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -379,15 +387,36 @@ const Appointments = () => {
 
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          alert("Reschedule appointment functionality coming soon!");
+                        }}
+                      >
                         <Edit className="mr-1 h-3 w-3" />
                         Reschedule
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          alert(`Sending reminder SMS to ${appointment.patientName}...`);
+                        }}
+                      >
                         <Send className="mr-1 h-3 w-3" />
                         Reminder
                       </Button>
-                      <Button size="sm" variant="outline" className="text-danger hover:bg-danger-light">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-danger hover:bg-danger-light"
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to cancel the appointment for ${appointment.patientName}?`)) {
+                            alert("Appointment cancelled successfully!");
+                          }
+                        }}
+                      >
                         <X className="mr-1 h-3 w-3" />
                         Cancel
                       </Button>

@@ -45,7 +45,15 @@ const Map = () => {
   };
 
   const handleEntityClick = (entityId: string, type: string) => {
-    navigate(`/entities/${type}s`);
+    // Navigate to the specific entity type page with the entity ID
+    const typeMap: Record<string, string> = {
+      'hospital': 'hospitals',
+      'clinic': 'clinics',
+      'pharmacy': 'pharmacies',
+      'lab': 'labs'
+    };
+    const routeType = typeMap[type] || type;
+    navigate(`/entities/${routeType}?id=${entityId}`);
   };
 
   return (
@@ -81,7 +89,7 @@ const Map = () => {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
+            <CardContent className="p-6">
             <p className="text-sm text-muted-foreground mb-1">Critical</p>
             <p className="text-3xl font-bold text-destructive">{stats.critical}</p>
           </CardContent>
@@ -207,10 +215,10 @@ const Map = () => {
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{entity.subEntries?.[0]?.location || "Location not set"}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
           )}
         </CardContent>
       </Card>

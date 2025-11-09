@@ -95,6 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(next);
     },
     signInEmail: async (email: string, password: string) => {
+      const { auth } = await getFirebase();
       await signInWithEmailAndPassword(auth, email, password);
     },
     loginAs: (roles: UserRole[]) => setUser((prev) => {

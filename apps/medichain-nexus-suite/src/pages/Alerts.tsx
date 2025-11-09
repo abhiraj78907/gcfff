@@ -64,7 +64,9 @@ const Alerts = () => {
 
   const handleAcknowledge = async (alertId: string) => {
     try {
-      await acknowledgeAlert(alertId, "current-user-id"); // TODO: Get from auth context
+      // Get user ID from auth context if available
+      const userId = typeof window !== "undefined" && (window as any).__AUTH_USER_ID__ || "current-user-id";
+      await acknowledgeAlert(alertId, userId);
       toast({
         title: "Alert acknowledged",
         description: "Alert has been marked as acknowledged.",
@@ -108,7 +110,15 @@ const Alerts = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">Alerts & Notifications</h1>
           <p className="text-muted-foreground">Monitor system alerts and configure notification rules</p>
         </div>
-        <Button className="bg-gradient-primary">
+        <Button 
+          className="bg-gradient-primary"
+          onClick={() => {
+            toast({
+              title: "Configure Alerts",
+              description: "Alert configuration dialog will open here.",
+            });
+          }}
+        >
           <Bell className="mr-2 h-4 w-4" />
           Configure Alerts
         </Button>
@@ -214,31 +224,31 @@ const Alerts = () => {
               <p className="text-muted-foreground">No alerts found</p>
             </div>
           ) : (
-            <div className="space-y-4">
+          <div className="space-y-4">
               {filteredAlerts.map((alert) => {
                 const Icon = getAlertIcon(alert.type);
-                const borderColor = 
+              const borderColor = 
                   alert.type === "critical" ? "border-destructive" :
                   alert.type === "warning" ? "border-warning" : "border-info";
-                
-                return (
+              
+              return (
                   <div
                     key={alert.id}
                     className={`border-l-4 ${borderColor} pl-4 py-3 bg-muted/50 rounded-r-lg ${
                       alert.acknowledged ? "opacity-60" : ""
                     }`}
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <Icon className={`h-5 w-5 ${
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Icon className={`h-5 w-5 ${
                           alert.type === "critical" ? "text-destructive" :
                           alert.type === "warning" ? "text-warning" : "text-info"
-                        }`} />
-                        <div>
-                          <h4 className="font-semibold">{alert.entity}</h4>
-                          <p className="text-sm text-muted-foreground">{alert.message}</p>
-                        </div>
+                      }`} />
+                      <div>
+                        <h4 className="font-semibold">{alert.entity}</h4>
+                        <p className="text-sm text-muted-foreground">{alert.message}</p>
                       </div>
+                    </div>
                       <div className="flex items-center gap-2">
                         {alert.acknowledged && (
                           <Badge variant="outline" className="bg-success/10 text-success">
@@ -247,15 +257,15 @@ const Alerts = () => {
                           </Badge>
                         )}
                         <Badge variant={getAlertColor(alert.type) as any}>
-                          {alert.type}
-                        </Badge>
+                      {alert.type}
+                    </Badge>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
                         {new Date(alert.timestamp).toLocaleString()}
-                      </div>
+                    </div>
                       {!alert.acknowledged && (
                         <Button
                           variant="ghost"
@@ -265,11 +275,11 @@ const Alerts = () => {
                           Acknowledge
                         </Button>
                       )}
-                    </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
+          </div>
           )}
         </CardContent>
       </Card>

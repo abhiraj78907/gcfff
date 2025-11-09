@@ -85,7 +85,13 @@ export default function Procurement() {
                     <p className="text-sm text-muted-foreground">ETA</p>
                     <p className="text-sm font-medium">{order.eta}</p>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      window.location.href = `tel:${order.supplierPhone || "+91 9876543210"}`;
+                    }}
+                  >
                     <Phone className="h-4 w-4" />
                   </Button>
                 </div>
@@ -139,11 +145,24 @@ export default function Procurement() {
                     </td>
                     <td className="p-4">
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            window.location.href = `tel:${supplier.contact}`;
+                          }}
+                        >
                           <Phone className="mr-2 h-4 w-4" />
                           Call
                         </Button>
-                        <Button size="sm">Place Order</Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            alert(`Placing order with ${supplier.name}...`);
+                          }}
+                        >
+                          Place Order
+                        </Button>
                       </div>
                     </td>
                   </tr>

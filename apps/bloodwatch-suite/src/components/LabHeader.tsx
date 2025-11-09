@@ -19,8 +19,14 @@ export function LabHeader() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
-    navigate("/onboard/login", { replace: true });
+    try {
+      logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+    // Redirect to login page using full URL
+    const loginUrl = `${window.location.origin}/onboard/login`;
+    window.location.replace(loginUrl);
   };
 
   const handleProfile = () => {
@@ -46,7 +52,12 @@ export function LabHeader() {
         <h1 className="text-lg font-semibold text-foreground">Lab Dashboard</h1>
       </div>
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="relative">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="relative"
+          onClick={() => navigate("/requests")}
+        >
           <Bell className="h-5 w-5" />
           <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive p-0 text-[10px] flex items-center justify-center">
             3

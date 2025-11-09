@@ -25,8 +25,14 @@ export function DoctorHeader() {
   ];
 
   const handleLogout = () => {
-    logout();
-    navigate("/onboard/login", { replace: true });
+    try {
+      logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+    // Redirect to login page using full URL
+    const loginUrl = `${window.location.origin}/onboard/login`;
+    window.location.replace(loginUrl);
   };
 
   const handleProfile = () => {

@@ -35,9 +35,10 @@ export default function Prescriptions() {
   }, [entityId]);
 
   const prescriptions = useMemo(() => {
+    let allPrescriptions;
     if (livePrescriptions.length > 0) {
       // Map Firestore prescriptions to UI format
-      return livePrescriptions.map(p => ({
+      allPrescriptions = livePrescriptions.map(p => ({
         id: p.id,
         patientName: "Patient", // Would need to fetch patient name
         doctor: p.doctorName || "Dr. Unknown",
@@ -53,10 +54,25 @@ export default function Prescriptions() {
         })),
         total: 0,
       }));
+    } else {
+      allPrescriptions = mockPrescriptions;
     }
-    return mockPrescriptions;
-  }, [livePrescriptions, mockPrescriptions]);
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      return allPrescriptions.filter(p => 
+        p.patientName.toLowerCase().includes(query) ||
+        p.doctor.toLowerCase().includes(query) ||
+        p.id.toLowerCase().includes(query) ||
+        p.hospital.toLowerCase().includes(query)
+      );
+    }
+    
+    return allPrescriptions;
+  }, [livePrescriptions, mockPrescriptions, searchQuery]);
 
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedPrescription, setSelectedPrescription] = useState(prescriptions[0] || null);
   const [selectedMedicines, setSelectedMedicines] = useState<number[]>([]);
   const [dispensing, setDispensing] = useState(false);
@@ -106,6 +122,28 @@ export default function Prescriptions() {
       await markPrescriptionDispensed(entityId, patientId, selectedPrescription.id);
 
       notifyByRole.pharmacist.dispensed(selectedPrescription.patientName);
+      
+      // Notify patient that prescription is ready
+      try {
+        const { addDoc, collection } = await import("firebase/firestore");
+        const { getFirebase } = await import("../../lib/firebase");
+        const { db } = await getFirebase();
+        if (entityId) {
+          await addDoc(collection(db, `entities/${entityId}/notifications`), {
+            type: "prescription_dispensed",
+            patientId: patientId,
+            patientName: selectedPrescription.patientName,
+            prescriptionId: selectedPrescription.id,
+            timestamp: Date.now(),
+            read: false,
+            role: "patient",
+            message: `Your prescription has been dispensed. You can collect your medicines.`,
+          });
+          console.log("[pharmacy] ✅ Patient notification created");
+        }
+      } catch (notifError) {
+        console.error("[pharmacy] Failed to notify patient:", notifError);
+      }
 
       // Reset selection
       setSelectedMedicines([]);
@@ -134,9 +172,17 @@ export default function Prescriptions() {
               <Input 
                 placeholder="Search by Patient ID, Name, or Prescription ID..." 
                 className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="icon">
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => {
+                alert("QR Code scanner will open here!");
+              }}
+            >
               <QrCode className="h-4 w-4" />
             </Button>
           </div>
@@ -281,9 +327,33 @@ export default function Prescriptions() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Payment Mode</label>
               <div className="grid grid-cols-3 gap-2">
-                <Button variant="outline" size="sm">Cash</Button>
-                <Button variant="outline" size="sm">UPI</Button>
-                <Button variant="outline" size="sm">Card</Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Payment mode selection would be handled here
+                  }}
+                >
+                  Cash
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Payment mode selection would be handled here
+                  }}
+                >
+                  UPI
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Payment mode selection would be handled here
+                  }}
+                >
+                  Card
+                </Button>
               </div>
             </div>
 
@@ -292,7 +362,13 @@ export default function Prescriptions() {
                 <CheckCircle2 className="mr-2 h-4 w-4" />
                 {dispensing ? "Dispensing..." : "Complete & Dispense"}
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  window.print();
+                }}
+              >
                 <Printer className="mr-2 h-4 w-4" />
                 Print Invoice
               </Button>

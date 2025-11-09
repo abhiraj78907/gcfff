@@ -20,8 +20,72 @@ export function entityPath(entityId: EntityId) {
   return `entities/${entityId}`;
 }
 
-// Collections
+// Collections - Comprehensive path helpers
 export const paths = {
+  // Users
+  user: (userId: string) => `users/${userId}`,
+  
+  // Entities
+  entity: (entityId: EntityId) => `entities/${entityId}`,
+  subEntry: (entityId: EntityId, subEntryId: string) =>
+    `${entityPath(entityId)}/subEntries/${subEntryId}`,
+  
+  // Patients
+  patient: (entityId: EntityId, patientId: string) =>
+    `${entityPath(entityId)}/patients/${patientId}`,
+  patientConsultations: (entityId: EntityId, patientId: string) =>
+    `${entityPath(entityId)}/patients/${patientId}/consultations`,
+  patientConsultation: (entityId: EntityId, patientId: string, consultationId: string) =>
+    `${entityPath(entityId)}/patients/${patientId}/consultations/${consultationId}`,
+  consultationPrescriptions: (entityId: EntityId, patientId: string, consultationId: string) =>
+    `${entityPath(entityId)}/patients/${patientId}/consultations/${consultationId}/prescriptions`,
+  consultationPrescription: (entityId: EntityId, patientId: string, consultationId: string, prescriptionId: string) =>
+    `${entityPath(entityId)}/patients/${patientId}/consultations/${consultationId}/prescriptions/${prescriptionId}`,
+  
+  // Doctors
+  doctor: (entityId: EntityId, doctorId: string) =>
+    `${entityPath(entityId)}/doctors/${doctorId}`,
+  doctorConsultations: (entityId: EntityId, doctorId: string) =>
+    `${entityPath(entityId)}/doctors/${doctorId}/consultations`,
+  doctorConsultation: (entityId: EntityId, doctorId: string, consultationId: string) =>
+    `${entityPath(entityId)}/doctors/${doctorId}/consultations/${consultationId}`,
+  
+  // Medicines & Pharmacy
+  medicines: (entityId: EntityId) => `${entityPath(entityId)}/medicines`,
+  medicine: (entityId: EntityId, medicineId: string) =>
+    `${entityPath(entityId)}/medicines/${medicineId}`,
+  pharmacyInventory: (entityId: EntityId) => `${entityPath(entityId)}/pharmacy/inventory`,
+  pharmacyInventoryItem: (entityId: EntityId, itemId: string) =>
+    `${entityPath(entityId)}/pharmacy/inventory/${itemId}`,
+  pharmacyDispensations: (entityId: EntityId) =>
+    `${entityPath(entityId)}/pharmacy/dispensations`,
+  pharmacyDispensation: (entityId: EntityId, dispensationId: string) =>
+    `${entityPath(entityId)}/pharmacy/dispensations/${dispensationId}`,
+  
+  // Lab
+  labRequests: (entityId: EntityId) => `${entityPath(entityId)}/lab/requests`,
+  labRequest: (entityId: EntityId, requestId: string) =>
+    `${entityPath(entityId)}/lab/requests/${requestId}`,
+  labResults: (entityId: EntityId) => `${entityPath(entityId)}/lab/results`,
+  labResult: (entityId: EntityId, resultId: string) =>
+    `${entityPath(entityId)}/lab/results/${resultId}`,
+  
+  // Queue
+  receptionQueue: (entityId: EntityId, subEntryId: string) =>
+    `${entityPath(entityId)}/subEntries/${subEntryId}/queue`,
+  queueEntry: (entityId: EntityId, subEntryId: string, queueId: string) =>
+    `${entityPath(entityId)}/subEntries/${subEntryId}/queue/${queueId}`,
+  
+  // System
+  notifications: () => 'notifications',
+  notification: (notificationId: string) => `notifications/${notificationId}`,
+  auditLogs: () => 'auditLogs',
+  auditLog: (logId: string) => `auditLogs/${logId}`,
+  reports: () => 'reports',
+  report: (reportId: string) => `reports/${reportId}`,
+  analytics: (entityId: EntityId, date: string) => `analytics/${entityId}/${date}`,
+  
+  // Legacy paths (for backward compatibility)
   patientMedicines: (entityId: EntityId, patientId: string) =>
     `${entityPath(entityId)}/patients/${patientId}/medicines`,
   patientPrescriptions: (entityId: EntityId, patientId: string) =>
@@ -30,10 +94,6 @@ export const paths = {
     `${entityPath(entityId)}/patients/${patientId}/appointments`,
   doctorQueue: (entityId: EntityId, doctorId: string) =>
     `${entityPath(entityId)}/doctors/${doctorId}/queue`,
-  labRequests: (entityId: EntityId) => `${entityPath(entityId)}/labRequests`,
-  pharmacyInventory: (entityId: EntityId) => `${entityPath(entityId)}/pharmacy/inventory`,
-  receptionQueue: (entityId: EntityId, subEntryId: string) =>
-    `${entityPath(entityId)}/subEntries/${subEntryId}/queue`,
   labResults: (entityId: EntityId, patientId: string) =>
     `${entityPath(entityId)}/patients/${patientId}/labResults`,
   consultations: (entityId: EntityId, doctorId: string) =>

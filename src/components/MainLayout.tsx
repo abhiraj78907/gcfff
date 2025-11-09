@@ -3,7 +3,6 @@ import { SidebarProvider } from "./ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { SidebarTrigger } from "./ui/sidebar";
 import { SubEntryProvider } from "../contexts/SubEntryContext";
-import { SubEntrySwitcher } from "./SubEntrySwitcher";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { UserProfileDropdown } from "./UserProfileDropdown";
 import { useAuth } from "../contexts/AuthContext";
@@ -37,7 +36,6 @@ export const MainLayout = () => {
               {showSidebar && (
                 <>
               <RoleSwitcher />
-                  <SubEntrySwitcher />
                   <UserProfileDropdown variant="compact" />
                 </>
               )}

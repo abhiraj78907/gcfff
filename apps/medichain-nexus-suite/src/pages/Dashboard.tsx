@@ -55,50 +55,50 @@ const Dashboard = () => {
   };
 
   // Mock data for charts (will be replaced with real data from analytics)
-  const consultationData = [
-    { month: "Jan", consultations: 4200 },
-    { month: "Feb", consultations: 5100 },
-    { month: "Mar", consultations: 4800 },
-    { month: "Apr", consultations: 6200 },
-    { month: "May", consultations: 7100 },
-    { month: "Jun", consultations: 6800 },
-  ];
+const consultationData = [
+  { month: "Jan", consultations: 4200 },
+  { month: "Feb", consultations: 5100 },
+  { month: "Mar", consultations: 4800 },
+  { month: "Apr", consultations: 6200 },
+  { month: "May", consultations: 7100 },
+  { month: "Jun", consultations: 6800 },
+];
 
-  const prescriptionData = [
-    { day: "Mon", prescriptions: 320 },
-    { day: "Tue", prescriptions: 445 },
-    { day: "Wed", prescriptions: 380 },
-    { day: "Thu", prescriptions: 510 },
-    { day: "Fri", prescriptions: 490 },
-    { day: "Sat", prescriptions: 420 },
-    { day: "Sun", prescriptions: 280 },
-  ];
+const prescriptionData = [
+  { day: "Mon", prescriptions: 320 },
+  { day: "Tue", prescriptions: 445 },
+  { day: "Wed", prescriptions: 380 },
+  { day: "Thu", prescriptions: 510 },
+  { day: "Fri", prescriptions: 490 },
+  { day: "Sat", prescriptions: 420 },
+  { day: "Sun", prescriptions: 280 },
+];
 
   const handleEntityClick = (type: "hospital" | "clinic" | "pharmacy" | "lab") => {
     navigate(`/entities/${type}s`);
   };
 
   const handleAlertClick = (alertId: string) => {
-    navigate(`/alerts?highlight=${alertId}`);
+    navigate(`/dashboard/admin/alerts?highlight=${alertId}`);
   };
 
   const handleViewAllAlerts = () => {
-    navigate("/alerts");
+    navigate("/dashboard/admin/alerts");
   };
 
   const handleViewAnalytics = () => {
-    navigate("/analytics");
+    navigate("/dashboard/admin/analytics");
   };
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Overview</h1>
-          <p className="text-muted-foreground">
-            Real-time insights across all healthcare entities
-          </p>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Overview</h1>
+        <p className="text-muted-foreground">
+          Real-time insights across all healthcare entities
+        </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleViewAnalytics}>
@@ -110,38 +110,38 @@ const Dashboard = () => {
 
       {/* KPI Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <div onClick={() => navigate("/analytics")} className="cursor-pointer">
-          <KPICard
-            title="Total Patients"
+        <div onClick={() => navigate("/dashboard/admin/analytics")} className="cursor-pointer">
+        <KPICard
+          title="Total Patients"
             value={analytics?.totalPatients?.toLocaleString() || "0"}
-            change="+12.5% from last month"
-            changeType="positive"
-            icon={Users}
-            iconColor="primary"
-            subtitle="Active registrations"
-          />
+          change="+12.5% from last month"
+          changeType="positive"
+          icon={Users}
+          iconColor="primary"
+          subtitle="Active registrations"
+        />
         </div>
-        <div onClick={() => navigate("/analytics")} className="cursor-pointer">
-          <KPICard
-            title="Daily Consultations"
+        <div onClick={() => navigate("/dashboard/admin/analytics")} className="cursor-pointer">
+        <KPICard
+          title="Daily Consultations"
             value={analytics?.totalConsultations?.toLocaleString() || "0"}
-            change="+8.2% from yesterday"
-            changeType="positive"
-            icon={Stethoscope}
-            iconColor="secondary"
-            subtitle="Across all entities"
-          />
+          change="+8.2% from yesterday"
+          changeType="positive"
+          icon={Stethoscope}
+          iconColor="secondary"
+          subtitle="Across all entities"
+        />
         </div>
-        <div onClick={() => navigate("/map")} className="cursor-pointer">
-          <KPICard
-            title="Active Entities"
+        <div onClick={() => navigate("/dashboard/admin/map")} className="cursor-pointer">
+        <KPICard
+          title="Active Entities"
             value={entityCounts.active.toString()}
             change={`${entityCounts.hospitals} Hospitals, ${entityCounts.clinics} Clinics`}
-            changeType="neutral"
-            icon={Hospital}
-            iconColor="accent"
+          changeType="neutral"
+          icon={Hospital}
+          iconColor="accent"
             subtitle={`${entityCounts.pharmacies} Pharmacies, ${entityCounts.labs} Labs`}
-          />
+        />
         </div>
         <KPICard
           title="System Health"
@@ -162,12 +162,12 @@ const Dashboard = () => {
             <CardDescription>Consultation trends over the last 6 months</CardDescription>
           </CardHeader>
           <CardContent>
-            <ActivityChart
-              data={consultationData}
-              type="area"
-              dataKey="consultations"
-              xAxisKey="month"
-            />
+        <ActivityChart
+          data={consultationData}
+          type="area"
+          dataKey="consultations"
+          xAxisKey="month"
+        />
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={handleViewAnalytics}>
@@ -176,12 +176,12 @@ const Dashboard = () => {
             <CardDescription>Prescriptions dispensed this week</CardDescription>
           </CardHeader>
           <CardContent>
-            <ActivityChart
-              data={prescriptionData}
-              type="bar"
-              dataKey="prescriptions"
-              xAxisKey="day"
-            />
+        <ActivityChart
+          data={prescriptionData}
+          type="bar"
+          dataKey="prescriptions"
+          xAxisKey="day"
+        />
           </CardContent>
         </Card>
       </div>
@@ -195,7 +195,7 @@ const Dashboard = () => {
               <CardDescription>Geographic distribution of healthcare entities</CardDescription>
             </CardHeader>
             <CardContent>
-              <EntityMap />
+          <EntityMap />
             </CardContent>
           </Card>
         </div>
@@ -204,7 +204,7 @@ const Dashboard = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-accent" />
+              <AlertCircle className="h-5 w-5 text-accent" />
                 <CardTitle>Recent Alerts</CardTitle>
               </div>
               <Button variant="ghost" size="sm" onClick={handleViewAllAlerts}>
@@ -231,21 +231,21 @@ const Dashboard = () => {
                   className="border-l-2 border-primary pl-4 py-2 cursor-pointer hover:bg-muted/50 rounded-r transition-colors"
                   onClick={() => handleAlertClick(alert.id)}
                 >
-                  <div className="flex items-start justify-between mb-1">
-                    <h4 className="font-semibold text-sm">{alert.entity}</h4>
-                    <Badge
-                      variant={
+                <div className="flex items-start justify-between mb-1">
+                  <h4 className="font-semibold text-sm">{alert.entity}</h4>
+                  <Badge
+                    variant={
                         alert.type === "critical" ? "destructive" :
                         alert.type === "warning" ? "default" : "secondary"
-                      }
-                      className="text-xs"
-                    >
-                      {alert.type}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-1">{alert.message}</p>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
+                    }
+                    className="text-xs"
+                  >
+                    {alert.type}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-1">{alert.message}</p>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
                     {new Date(alert.timestamp).toLocaleString()}
                   </div>
                 </div>
@@ -264,7 +264,7 @@ const Dashboard = () => {
             count: entityCounts.hospitals, 
             active: entityCounts.hospitals, 
             color: "primary",
-            route: "/entities/hospitals"
+            route: "/dashboard/admin/entities/hospitals"
           },
           { 
             icon: Building2, 
@@ -272,7 +272,7 @@ const Dashboard = () => {
             count: entityCounts.clinics, 
             active: entityCounts.clinics, 
             color: "secondary",
-            route: "/entities/clinics"
+            route: "/dashboard/admin/entities/clinics"
           },
           { 
             icon: Pill, 
@@ -280,7 +280,7 @@ const Dashboard = () => {
             count: entityCounts.pharmacies, 
             active: entityCounts.pharmacies, 
             color: "accent",
-            route: "/entities/pharmacies"
+            route: "/dashboard/admin/entities/pharmacies"
           },
           { 
             icon: FlaskConical, 
@@ -288,7 +288,7 @@ const Dashboard = () => {
             count: entityCounts.labs, 
             active: entityCounts.labs, 
             color: "success",
-            route: "/entities/labs"
+            route: "/dashboard/admin/entities/labs"
           },
         ].map((entity) => (
           <Card 
@@ -303,8 +303,8 @@ const Dashboard = () => {
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-bold mb-1">{entity.count}</h3>
-                  <p className="text-sm text-muted-foreground">{entity.label}</p>
+              <h3 className="text-2xl font-bold mb-1">{entity.count}</h3>
+              <p className="text-sm text-muted-foreground">{entity.label}</p>
                 </div>
                 <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
               </div>

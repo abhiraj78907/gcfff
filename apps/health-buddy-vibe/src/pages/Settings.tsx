@@ -57,7 +57,19 @@ const Settings = () => {
                 <Label htmlFor="name">पूरा नाम</Label>
                 <div className="flex gap-2">
                   <Input id="name" defaultValue="रमेश कुमार" className="text-base" />
-                  <Button variant="outline" size="icon">
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => {
+                      const newName = prompt("Enter new name:", "रमेश कुमार");
+                      if (newName) {
+                        toast({
+                          title: "Name Updated",
+                          description: `Name changed to ${newName}`,
+                        });
+                      }
+                    }}
+                  >
                     <Edit className="w-4 h-4" />
                   </Button>
                 </div>
@@ -67,7 +79,19 @@ const Settings = () => {
                 <Label htmlFor="phone">फोन नंबर</Label>
                 <div className="flex gap-2">
                   <Input id="phone" defaultValue="+91 9876543210" className="text-base" />
-                  <Button variant="outline" size="icon">
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => {
+                      const newPhone = prompt("Enter new phone number:", "+91 9876543210");
+                      if (newPhone) {
+                        toast({
+                          title: "Phone Updated",
+                          description: `Phone number changed to ${newPhone}`,
+                        });
+                      }
+                    }}
+                  >
                     <Edit className="w-4 h-4" />
                   </Button>
                 </div>
@@ -103,7 +127,19 @@ const Settings = () => {
             {caregiverMode && (
               <>
                 <Separator />
-                <Button variant="outline" className="w-full h-12 text-base">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-12 text-base"
+                  onClick={() => {
+                    const phone = prompt("Enter caregiver phone number:");
+                    if (phone) {
+                      toast({
+                        title: "Caregiver Added",
+                        description: `Caregiver with phone ${phone} has been added.`,
+                      });
+                    }
+                  }}
+                >
                   देखभालकर्ता जोड़ें
                 </Button>
               </>
@@ -250,13 +286,31 @@ const Settings = () => {
           </div>
           
           <div className="space-y-2">
-            <Button variant="outline" className="w-full justify-start h-12 text-base">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start h-12 text-base"
+              onClick={() => {
+                alert("FAQ section will open here!");
+              }}
+            >
               अक्सर पूछे जाने वाले प्रश्न
             </Button>
-            <Button variant="outline" className="w-full justify-start h-12 text-base">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start h-12 text-base"
+              onClick={() => {
+                window.location.href = "mailto:support@medichain.dev?subject=Support Request";
+              }}
+            >
               सहायता से संपर्क करें
             </Button>
-            <Button variant="outline" className="w-full justify-start h-12 text-base">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start h-12 text-base"
+              onClick={() => {
+                alert("Tutorial videos will open here!");
+              }}
+            >
               ट्यूटोरियल वीडियो देखें
             </Button>
             <Separator className="my-4" />

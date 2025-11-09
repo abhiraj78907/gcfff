@@ -23,7 +23,27 @@ export default function Analytics() {
           <h1 className="text-3xl font-bold tracking-tight">Sales Analytics</h1>
           <p className="text-muted-foreground">Comprehensive insights into your pharmacy performance</p>
         </div>
-        <Button>
+        <Button
+          onClick={() => {
+            const csvContent = [
+              ["Date", "Sales", "Revenue", "Profit"],
+              ...mockRevenueData.map(item => [
+                item.date,
+                item.sales.toString(),
+                item.revenue.toString(),
+                item.profit.toString()
+              ])
+            ].map(row => row.join(",")).join("\n");
+            
+            const blob = new Blob([csvContent], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `pharmacy-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+        >
           <Download className="mr-2 h-4 w-4" />
           Export Report
         </Button>

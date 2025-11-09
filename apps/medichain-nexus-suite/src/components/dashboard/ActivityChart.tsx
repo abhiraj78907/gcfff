@@ -114,10 +114,10 @@ export const ActivityChart = ({
   return (
     <Card>
       {title && (
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          {description && <CardDescription>{description}</CardDescription>}
-        </CardHeader>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
       )}
       <CardContent>
         <ResponsiveContainer width="100%" height={height}>

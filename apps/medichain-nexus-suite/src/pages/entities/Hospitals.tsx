@@ -243,50 +243,50 @@ const Hospitals = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6">
+      <div className="grid gap-6">
           {filteredEntities.map((entity) => (
             <Card 
               key={entity.id} 
               className="hover:shadow-lg transition-shadow"
             >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-lg bg-primary/10">
-                      <Hospital className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg bg-primary/10">
+                    <Hospital className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
                       <CardTitle className="text-xl">{entity.name}</CardTitle>
-                      <CardDescription className="flex items-center gap-1 mt-1">
-                        <MapPin className="h-3 w-3" />
+                    <CardDescription className="flex items-center gap-1 mt-1">
+                      <MapPin className="h-3 w-3" />
                         {entity.subEntries?.[0]?.location || "Location not set"}
-                      </CardDescription>
+                    </CardDescription>
                     </div>
                   </div>
                   <Badge variant={entity.status === "active" ? "default" : "secondary"}>
                     {entity.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
                 <div className="grid grid-cols-4 gap-4 mb-4">
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <Users className="h-4 w-4 mx-auto mb-1 text-primary" />
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <Users className="h-4 w-4 mx-auto mb-1 text-primary" />
                     <p className="text-lg font-bold">{entity.totalPatients || 0}</p>
-                    <p className="text-xs text-muted-foreground">Patients</p>
-                  </div>
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <Activity className="h-4 w-4 mx-auto mb-1 text-secondary" />
+                  <p className="text-xs text-muted-foreground">Patients</p>
+                </div>
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <Activity className="h-4 w-4 mx-auto mb-1 text-secondary" />
                     <p className="text-lg font-bold">{entity.totalUsers || 0}</p>
                     <p className="text-xs text-muted-foreground">Staff</p>
-                  </div>
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <Hospital className="h-4 w-4 mx-auto mb-1 text-accent" />
+                </div>
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <Hospital className="h-4 w-4 mx-auto mb-1 text-accent" />
                     <p className="text-lg font-bold">-</p>
-                    <p className="text-xs text-muted-foreground">Beds</p>
-                  </div>
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <Phone className="h-4 w-4 mx-auto mb-1 text-info" />
+                  <p className="text-xs text-muted-foreground">Beds</p>
+                </div>
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <Phone className="h-4 w-4 mx-auto mb-1 text-info" />
                     <p className="text-xs text-muted-foreground mt-1">{entity.subEntries?.[0]?.phone || "N/A"}</p>
                   </div>
                 </div>
@@ -304,11 +304,11 @@ const Hospitals = () => {
                     <Trash2 className="h-4 w-4 mr-1" />
                     Delete
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
       )}
 
       {/* Add/Edit Dialog */}

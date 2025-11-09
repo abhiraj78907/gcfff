@@ -2,8 +2,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, Clock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const DoctorStatus = () => {
+  const { toast } = useToast();
   const doctors = [
     { name: "Dr. Sharma", dept: "General Medicine", status: "available", queue: 3, avgTime: "12 min" },
     { name: "Dr. Patil", dept: "Cardiology", status: "busy", queue: 5, avgTime: "18 min" },
@@ -58,7 +60,18 @@ const DoctorStatus = () => {
                   <p className="text-2xl font-bold">{doctor.avgTime}</p>
                 </div>
               </div>
-              <Button className="w-full mt-4" variant="outline">View Details</Button>
+              <Button
+                className="w-full mt-4"
+                variant="outline"
+                onClick={() => {
+                  toast({
+                    title: `${doctor.name} - Details`,
+                    description: `Department: ${doctor.dept}\nStatus: ${doctor.status}\nQueue: ${doctor.queue} patients\nAverage Time: ${doctor.avgTime}`,
+                  });
+                }}
+              >
+                View Details
+              </Button>
             </Card>
           ))}
         </div>

@@ -38,7 +38,16 @@ export default function PatientHistory() {
   };
 
   const handleViewPrescription = (date: string) => {
-    toast.info(`Viewing prescription from ${date}`);
+    // Navigate to patient prescriptions page
+    toast.info(`Opening prescription from ${date}`, {
+      description: "Redirecting to prescriptions...",
+      action: {
+        label: "View Prescriptions",
+        onClick: () => {
+          window.location.href = "/patient/prescriptions";
+        }
+      }
+    });
   };
 
   const handleOpenDetails = (visit: typeof filteredHistory[0]) => {

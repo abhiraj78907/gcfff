@@ -9,6 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@shared/contexts/AuthContext";
+import { useSubEntry } from "@shared/contexts/SubEntryContext";
+import { uploadLabResult } from "@shared/lib/labActions";
+import { notifyByRole, notifyError } from "@shared/lib/notifications";
 
 interface TestParameter {
   name: string;
@@ -28,9 +32,14 @@ const testParameters: TestParameter[] = [
 
 export default function UploadResults() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { currentEntity } = useSubEntry();
   const [parameters, setParameters] = useState<TestParameter[]>(testParameters);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [remarks, setRemarks] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState("");
+  const [selectedTestType, setSelectedTestType] = useState("");
 
   const handleParameterChange = (index: number, value: string) => {
     const newParameters = [...parameters];
@@ -58,11 +67,97 @@ export default function UploadResults() {
     }
   };
 
-  const handleSubmit = () => {
-    toast({
-      title: "Results Submitted",
-      description: "Test results have been saved and sent for validation.",
-    });
+  const handleSubmit = async () => {
+    if (!selectedRequestId) {
+      toast({
+        title: "Selection Required",
+        description: "Please select a patient and test request.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const entityId = currentEntity?.id ?? user?.entityId;
+    if (!entityId) {
+      toast({
+        title: "Entity Required",
+        description: "Please select an entity.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Build values object from parameters
+      const values: Record<string, unknown> = {};
+      parameters.forEach(param => {
+        if (param.value) {
+          values[param.name] = `${param.value} ${param.unit}`;
+        }
+      });
+
+      // TODO: Upload file to Firebase Storage and get URL
+      const fileUrl = selectedFile ? `pending-upload-${selectedFile.name}` : undefined;
+
+      // For now, use a placeholder patient ID - in production, get from selected request
+      const patientId = "patient-placeholder";
+
+      await uploadLabResult(
+        entityId,
+        patientId,
+        selectedRequestId,
+        {
+          testType: selectedTestType || "Complete Blood Count",
+          resultUrl: fileUrl,
+          values,
+          verifiedBy: user?.id,
+          notes: remarks,
+        }
+      );
+
+      notifyByRole.lab.resultUploaded(patientId, selectedTestType || "Complete Blood Count");
+
+      // Create Firestore notification for doctor
+      try {
+        const { addDoc, collection } = await import("firebase/firestore");
+        const { getFirebase } = await import("@shared/lib/firebase");
+        const { db } = await getFirebase();
+        if (entityId) {
+          await addDoc(collection(db, `entities/${entityId}/notifications`), {
+            type: "lab_result_uploaded",
+            patientId: patientId,
+            patientName: "Patient",
+            testType: selectedTestType || "Complete Blood Count",
+            resultUrl: fileUrl,
+            timestamp: Date.now(),
+            read: false,
+            role: "doctor",
+            message: `Lab results for ${selectedTestType || "Complete Blood Count"} have been uploaded.`,
+          });
+          console.log("[lab] ✅ Doctor notification created");
+        }
+      } catch (notifError) {
+        console.error("[lab] Failed to notify doctor:", notifError);
+      }
+
+      // Reset form
+      setParameters(testParameters.map(p => ({ ...p, value: "" })));
+      setSelectedFile(null);
+      setRemarks("");
+      setSelectedRequestId("");
+      setSelectedTestType("");
+
+      toast({
+        title: "Results Submitted",
+        description: "Test results have been saved and sent for validation.",
+      });
+    } catch (error) {
+      console.error("[lab] Upload failed:", error);
+      notifyError("Upload Results", error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -96,30 +191,30 @@ export default function UploadResults() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <Label htmlFor="patient">Select Patient</Label>
-          <Select>
+          <Label htmlFor="patient">Select Patient & Request</Label>
+          <Select value={selectedRequestId} onValueChange={setSelectedRequestId}>
             <SelectTrigger id="patient">
               <SelectValue placeholder="Search for patient..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="p1">Rajesh Kumar - P-12345</SelectItem>
-              <SelectItem value="p2">Priya Patel - P-12346</SelectItem>
-              <SelectItem value="p3">Amit Singh - P-12347</SelectItem>
+              <SelectItem value="req-1">Rajesh Kumar - P-12345 (CBC)</SelectItem>
+              <SelectItem value="req-2">Priya Patel - P-12346 (LFT)</SelectItem>
+              <SelectItem value="req-3">Amit Singh - P-12347 (Lipid Profile)</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-4">
           <Label htmlFor="test">Select Test Type</Label>
-          <Select>
+          <Select value={selectedTestType} onValueChange={setSelectedTestType}>
             <SelectTrigger id="test">
               <SelectValue placeholder="Choose test..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="cbc">Complete Blood Count</SelectItem>
-              <SelectItem value="lft">Liver Function Test</SelectItem>
-              <SelectItem value="kft">Kidney Function Test</SelectItem>
-              <SelectItem value="lipid">Lipid Profile</SelectItem>
+              <SelectItem value="Complete Blood Count">Complete Blood Count</SelectItem>
+              <SelectItem value="Liver Function Test">Liver Function Test</SelectItem>
+              <SelectItem value="Kidney Function Test">Kidney Function Test</SelectItem>
+              <SelectItem value="Lipid Profile">Lipid Profile</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -231,7 +326,19 @@ export default function UploadResults() {
           <Save className="h-4 w-4 mr-2" />
           Save & Send for Validation
         </Button>
-        <Button variant="outline" size="lg">
+        <Button 
+          variant="outline" 
+          size="lg"
+          onClick={() => {
+            setParameters(testParameters.map(p => ({ ...p, value: "" })));
+            setSelectedFile(null);
+            setRemarks("");
+            toast({
+              title: "Cancelled",
+              description: "Form has been reset.",
+            });
+          }}
+        >
           Cancel
         </Button>
       </div>

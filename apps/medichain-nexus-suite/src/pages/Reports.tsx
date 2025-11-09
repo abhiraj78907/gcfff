@@ -265,7 +265,15 @@ const Reports = () => {
                   </div>
                   <Badge variant="outline">{template.category}</Badge>
                 </div>
-                <Button variant="outline" size="sm" className="w-full">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => {
+                    setSelectedTemplate(template);
+                    setIsGenerateDialogOpen(true);
+                  }}
+                >
                   Generate Report
                 </Button>
               </div>
@@ -346,35 +354,35 @@ const Reports = () => {
               <p className="text-muted-foreground">No reports generated yet</p>
             </div>
           ) : (
-            <div className="space-y-3">
+          <div className="space-y-3">
               {reports.map((report) => (
                 <div
                   key={report.id}
                   className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 rounded-lg bg-success/10">
-                      <FileText className="h-5 w-5 text-success" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">{report.name}</h4>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
+                <div className="flex items-center gap-4">
+                  <div className="p-2 rounded-lg bg-success/10">
+                    <FileText className="h-5 w-5 text-success" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">{report.name}</h4>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
                           {new Date(report.generatedAt).toLocaleDateString()}
-                        </span>
-                        <Badge variant="secondary" className="text-xs">{report.format}</Badge>
-                        <span className="text-xs text-muted-foreground">{report.size}</span>
-                      </div>
+                      </span>
+                      <Badge variant="secondary" className="text-xs">{report.format}</Badge>
+                      <span className="text-xs text-muted-foreground">{report.size}</span>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="gap-2" onClick={() => handleDownload(report)}>
-                    <Download className="h-4 w-4" />
-                    Download
-                  </Button>
                 </div>
-              ))}
-            </div>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => handleDownload(report)}>
+                  <Download className="h-4 w-4" />
+                  Download
+                </Button>
+              </div>
+            ))}
+          </div>
           )}
         </CardContent>
       </Card>

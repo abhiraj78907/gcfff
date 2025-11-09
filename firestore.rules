@@ -1,55 +1,135 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Helper functions
     function isSignedIn() { return request.auth != null; }
     function uid() { return request.auth.uid; }
-
-    // Custom claims suggested: { role: 'patient' | 'doctor' | 'pharmacist' | 'lab-tech' | 'receptionist' | 'admin', entityId: '...' }
     function role() { return request.auth.token.role; }
     function entityId() { return request.auth.token.entityId; }
-
-    // Users collection - users can read/write their own profile
+    function hasRole(roles) { return role() in roles; }
+    
+    // Users collection
     match /users/{userId} {
       allow read: if isSignedIn() && (uid() == userId || role() == 'admin');
       allow write: if isSignedIn() && uid() == userId;
+      allow create: if isSignedIn(); // Allow profile creation on signup
     }
-
-    // Entities - entity-scoped access
-    match /entities/{eId}/{document=**} {
-      allow read, write: if isSignedIn() && eId == entityId();
+    
+    // Entities collection
+    match /entities/{entityId} {
+      allow read: if isSignedIn() && (entityId() == entityId || role() == 'admin');
+      allow write: if isSignedIn() && role() == 'admin';
+      
+      // Sub-entries (Wards/Departments/Branches)
+      match /subEntries/{subEntryId} {
+        allow read: if isSignedIn() && entityId() == entityId;
+        allow write: if isSignedIn() && (role() == 'admin' || role() == 'receptionist');
+      }
+      
+      // Patients
+      match /patients/{patientId} {
+        allow read: if isSignedIn() && entityId() == entityId && (
+          hasRole(['doctor', 'receptionist', 'pharmacist', 'lab-tech', 'admin']) ||
+          (role() == 'patient' && uid() == patientId)
+        );
+        allow create: if isSignedIn() && entityId() == entityId && hasRole(['receptionist', 'admin']);
+        allow update: if isSignedIn() && entityId() == entityId && hasRole(['receptionist', 'doctor', 'admin']);
+        
+        // Consultations
+        match /consultations/{consultationId} {
+          allow read: if isSignedIn() && entityId() == entityId && (
+            hasRole(['doctor', 'receptionist', 'admin']) ||
+            (role() == 'patient' && uid() == patientId)
+          );
+          allow create: if isSignedIn() && entityId() == entityId && hasRole(['doctor', 'receptionist']);
+          allow update: if isSignedIn() && entityId() == entityId && hasRole(['doctor', 'admin']);
+          
+          // Prescriptions
+          match /prescriptions/{prescriptionId} {
+            allow read: if isSignedIn() && entityId() == entityId && hasRole(['doctor', 'pharmacist', 'admin', 'patient']);
+            allow create: if isSignedIn() && entityId() == entityId && role() == 'doctor';
+            allow update: if isSignedIn() && entityId() == entityId && hasRole(['doctor', 'pharmacist', 'admin']);
+          }
+        }
+      }
+      
+      // Doctors
+      match /doctors/{doctorId} {
+        allow read: if isSignedIn() && entityId() == entityId;
+        allow write: if isSignedIn() && entityId() == entityId && (uid() == doctorId || role() == 'admin');
+        
+        // Doctor's consultations (alternative path)
+        match /consultations/{consultationId} {
+          allow read: if isSignedIn() && entityId() == entityId;
+          allow create: if isSignedIn() && entityId() == entityId && uid() == doctorId;
+          allow update: if isSignedIn() && entityId() == entityId && uid() == doctorId;
+        }
+      }
+      
+      // Medicines catalog
+      match /medicines/{medicineId} {
+        allow read: if isSignedIn() && entityId() == entityId;
+        allow write: if isSignedIn() && entityId() == entityId && hasRole(['admin', 'pharmacist']);
+      }
+      
+      // Pharmacy
+      match /pharmacy/inventory/{itemId} {
+        allow read: if isSignedIn() && entityId() == entityId && hasRole(['pharmacist', 'admin', 'doctor']);
+        allow write: if isSignedIn() && entityId() == entityId && hasRole(['pharmacist', 'admin']);
+      }
+      
+      match /pharmacy/dispensations/{dispensationId} {
+        allow read: if isSignedIn() && entityId() == entityId && hasRole(['pharmacist', 'admin', 'doctor']);
+        allow create, update: if isSignedIn() && entityId() == entityId && hasRole(['pharmacist', 'admin']);
+      }
+      
+      // Lab
+      match /lab/requests/{requestId} {
+        allow read: if isSignedIn() && entityId() == entityId && hasRole(['doctor', 'lab-tech', 'receptionist', 'admin']);
+        allow create: if isSignedIn() && entityId() == entityId && hasRole(['doctor', 'receptionist']);
+        allow update: if isSignedIn() && entityId() == entityId && hasRole(['lab-tech', 'admin']);
+      }
+      
+      match /lab/results/{resultId} {
+        allow read: if isSignedIn() && entityId() == entityId && hasRole(['doctor', 'lab-tech', 'admin', 'patient']);
+        allow create, update: if isSignedIn() && entityId() == entityId && hasRole(['lab-tech', 'admin']);
+      }
+      
+      // Reception queue
+      match /subEntries/{subEntryId}/queue/{queueId} {
+        allow read: if isSignedIn() && entityId() == entityId && hasRole(['receptionist', 'doctor', 'admin']);
+        allow create, update: if isSignedIn() && entityId() == entityId && hasRole(['receptionist', 'admin']);
+      }
     }
-
-    // Patients: read own medicines/prescriptions/appointments, cannot write final records
-    match /entities/{eId}/patients/{pId}/{coll=**}/{doc} {
-      allow read: if isSignedIn() && eId == entityId() && (role() in ['patient','doctor','pharmacist','lab-tech','receptionist','admin']) && (role() != 'patient' || uid() == pId);
-      allow create, update: if isSignedIn() && eId == entityId() && (
-        (role() == 'patient' && uid() == pId && coll in ['appointments'] ) ||
-        (role() == 'doctor') ||
-        (role() == 'receptionist')
+    
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == uid() ||
+        (resource.data.entityId == entityId() && entityId() != null) ||
+        role() == 'admin'
       );
+      allow create: if isSignedIn() && role() == 'admin';
+      allow update: if isSignedIn() && resource.data.userId == uid();
     }
-
-    // Doctors
-    match /entities/{eId}/doctors/{dId}/{document=**} {
-      allow read, write: if isSignedIn() && eId == entityId() && (role() == 'doctor' && uid() == dId || role() == 'admin');
+    
+    // Audit logs
+    match /auditLogs/{logId} {
+      allow read: if isSignedIn() && (entityId() == resource.data.entityId || role() == 'admin');
+      allow create: if isSignedIn(); // System creates logs
     }
-
-    // Lab
-    match /entities/{eId}/lab/{document=**} {
-      allow read: if isSignedIn() && eId == entityId();
-      allow write: if isSignedIn() && eId == entityId() && role() in ['lab-tech','admin'];
+    
+    // Reports
+    match /reports/{reportId} {
+      allow read: if isSignedIn() && (entityId() == resource.data.entityId || role() == 'admin');
+      allow create: if isSignedIn() && hasRole(['admin', 'receptionist']);
     }
-
-    // Pharmacy
-    match /entities/{eId}/pharmacy/{document=**} {
-      allow read: if isSignedIn() && eId == entityId();
-      allow write: if isSignedIn() && eId == entityId() && role() in ['pharmacist','admin'];
-    }
-
-    // Sub-entries queue
-    match /entities/{eId}/subEntries/{subId}/{document=**} {
-      allow read, write: if isSignedIn() && eId == entityId();
+    
+    // Analytics
+    match /analytics/{entityId}/{date} {
+      allow read: if isSignedIn() && (entityId() == entityId || role() == 'admin');
+      allow write: if isSignedIn() && role() == 'admin'; // System writes
     }
   }
 }
-

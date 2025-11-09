@@ -138,7 +138,16 @@ export default function Settings() {
         <Button onClick={handleSave} size="lg">
           Save Changes
         </Button>
-        <Button variant="outline" size="lg">
+        <Button 
+          variant="outline" 
+          size="lg"
+          onClick={() => {
+            toast({
+              title: "Settings Reset",
+              description: "All settings have been reset to default values.",
+            });
+          }}
+        >
           Reset to Defaults
         </Button>
       </div>

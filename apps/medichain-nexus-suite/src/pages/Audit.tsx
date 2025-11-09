@@ -338,7 +338,11 @@ const Audit = () => {
                       <Clock className="h-3 w-3" />
                       {new Date(log.timestamp).toLocaleString()}
                     </div>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleViewDetails(log)}
+                    >
                       <Eye className="h-4 w-4 mr-1" />
                       Details
                     </Button>

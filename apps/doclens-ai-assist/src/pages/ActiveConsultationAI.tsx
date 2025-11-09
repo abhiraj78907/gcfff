@@ -897,6 +897,19 @@ export default function ActiveConsultationAI() {
       if (medicines.length > 0) {
         notifyByRole.doctor.prescriptionCreated(patient.name);
         console.log("[ActiveConsultationAI] ✅ Prescription notification sent to pharmacist");
+        
+        // Show success message with navigation option
+        toast.success("Prescription created successfully!", {
+          description: "Pharmacist has been notified. You can view it in the pharmacy dashboard.",
+          action: {
+            label: "View in Pharmacy",
+            onClick: () => {
+              // Navigate to pharmacy prescriptions page
+              window.open("/pharmacy/prescriptions", "_blank");
+            }
+          },
+          duration: 5000,
+        });
       }
       
       // Real-time notification via Firestore (for cross-role sync)

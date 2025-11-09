@@ -136,15 +136,37 @@ const Appointments = () => {
         {/* Action Buttons */}
         {appointment.status === "upcoming" && (
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1"
+              onClick={() => {
+                window.location.href = `tel:${appointment.hospitalPhone || "+91 9876543210"}`;
+              }}
+            >
               <Phone className="w-4 h-4 mr-2" />
               Call
             </Button>
-            <Button variant="outline" size="sm" className="flex-1">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1"
+              onClick={() => {
+                const address = encodeURIComponent(appointment.hospitalAddress || "Hospital Address");
+                window.open(`https://www.google.com/maps/search/?api=1&query=${address}`, '_blank');
+              }}
+            >
               <MapPin className="w-4 h-4 mr-2" />
               Directions
             </Button>
-            <Button variant="outline" size="sm" className="flex-1">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1"
+              onClick={() => {
+                alert("Reschedule appointment functionality coming soon!");
+              }}
+            >
               Reschedule
             </Button>
           </div>
@@ -191,7 +213,14 @@ const Appointments = () => {
           {appointments.length === 0 && (
             <div className="lg:col-span-2 xl:col-span-3 text-center py-12">
               <p className="text-muted-foreground">No appointments scheduled</p>
-              <Button className="mt-4">Book Appointment</Button>
+              <Button 
+                className="mt-4"
+                onClick={() => {
+                  alert("Appointment booking form will open here!");
+                }}
+              >
+                Book Appointment
+              </Button>
             </div>
           )}
         </div>

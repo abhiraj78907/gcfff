@@ -61,8 +61,17 @@ export default function CompletedConsultations() {
   }, [consultations, filterPeriod, searchQuery]);
 
   const handleViewPrescription = (patientId: string, patientName: string) => {
-    toast.info(`Viewing prescription for ${patientName}`);
-    // Could navigate to prescription view
+    // Navigate to pharmacy prescriptions page to view the prescription
+    // In a real app, this would filter by patientId
+    toast.info(`Opening prescription for ${patientName}`, {
+      description: "Redirecting to pharmacy dashboard...",
+      action: {
+        label: "Go to Pharmacy",
+        onClick: () => {
+          navigate("/pharmacy/prescriptions");
+        }
+      }
+    });
   };
 
   const handleReopen = (consultation: any) => {
@@ -155,11 +164,40 @@ export default function CompletedConsultations() {
                   <SelectItem value="month">This Month</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="icon">
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => {
+                  toast.info("Filter options will be available here!");
+                }}
+              >
                 <Filter className="h-4 w-4" />
               </Button>
               <div className="relative">
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    const csvContent = [
+                      ["Date", "Patient", "Patient ID", "Doctor", "Diagnosis", "Status"],
+                      ...filteredConsultations.map(c => [
+                        new Date(c.createdAt).toLocaleDateString(),
+                        c.patientName || c.patientId,
+                        c.patientId,
+                        c.doctor || "N/A",
+                        c.diagnosis || "N/A",
+                        "completed"
+                      ])
+                    ].map(row => row.join(",")).join("\n");
+                    
+                    const blob = new Blob([csvContent], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `completed-consultations-${new Date().toISOString().split('T')[0]}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Export
                 </Button>

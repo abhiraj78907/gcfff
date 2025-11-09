@@ -118,7 +118,16 @@ function TestCard({ test }: { test: TestRequest }) {
           </div>
           <div className="flex gap-2 pt-2">
             {test.status === "new" && (
-              <Button size="sm" className="flex-1">
+              <Button 
+                size="sm" 
+                className="flex-1"
+                onClick={() => {
+                  const updatedTests = tests.map(t => 
+                    t.id === test.id ? { ...t, status: "inProgress" as TestStatus } : t
+                  );
+                  setTests(updatedTests);
+                }}
+              >
                 <Play className="h-3 w-3 mr-1" />
                 Start Test
               </Button>
