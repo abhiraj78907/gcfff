@@ -302,7 +302,7 @@ export default function ActiveConsultationAI() {
     if (isProcessingSymptoms || isProcessingDiagnosis) {
       return;
     }
-
+    
     // Clear existing debounce
     if (analysisDebounceTimeoutRef.current) {
       clearTimeout(analysisDebounceTimeoutRef.current);
@@ -311,9 +311,9 @@ export default function ActiveConsultationAI() {
     // Debounce analysis (2 seconds) to wait for complete statements
     analysisDebounceTimeoutRef.current = setTimeout(async () => {
       if (!isMountedRef.current) return;
-
-      setIsProcessingSymptoms(true);
-      setIsProcessingDiagnosis(true);
+    
+    setIsProcessingSymptoms(true);
+    setIsProcessingDiagnosis(true);
       lastAnalysisTranscriptRef.current = transcript;
 
       try {
@@ -327,7 +327,7 @@ export default function ActiveConsultationAI() {
         if (!isMountedRef.current) return;
 
         console.log("[ClinicalAssistant] ✅ Analysis complete", analysis);
-
+      
         // Update symptoms dynamically (merge with existing, avoid duplicates)
         if (analysis.symptoms.normalized.length > 0) {
           const existingSymptoms = symptoms.split(/[,\n]/).map(s => s.trim()).filter(s => s.length > 0);
@@ -338,25 +338,25 @@ export default function ActiveConsultationAI() {
             setSymptoms(merged);
             toast.success("Symptoms updated", {
               description: `Added ${newSymptoms.length} new symptom(s)`,
-            });
-          }
+          });
         }
-
+      }
+      
         // Update diagnosis if more confident or if empty
         if (analysis.diagnosis.primary) {
           if (!diagnosis || analysis.diagnosis.confidence > 0.7) {
             setDiagnosis(analysis.diagnosis.primary);
             toast.success("Diagnosis updated", {
               description: `${analysis.diagnosis.primary} (${Math.round(analysis.diagnosis.confidence * 100)}% confidence)`,
-            });
-          }
+          });
         }
-
+      }
+      
         // Update advice
         if (analysis.advice && !advice) {
           setAdvice(analysis.advice);
         }
-
+      
         // Update follow-up date
         if (analysis.followUpDays && !followUpDate) {
           const followUp = new Date();
@@ -373,21 +373,21 @@ export default function ActiveConsultationAI() {
             duration: analysis.prescriptionStructure.duration,
             dosage: analysis.prescriptionStructure.dosage,
           }));
-        }
-
-      } catch (error) {
+      }
+      
+    } catch (error) {
         console.error("[ClinicalAssistant] ❌ Analysis failed:", error);
-        if (isMountedRef.current) {
+      if (isMountedRef.current) {
           toast.error("Clinical analysis failed", {
             description: "Please try again or fill manually",
-          });
+        });
         }
       } finally {
         if (isMountedRef.current) {
-          setIsProcessingSymptoms(false);
-          setIsProcessingDiagnosis(false);
-        }
+        setIsProcessingSymptoms(false);
+        setIsProcessingDiagnosis(false);
       }
+    }
     }, 2000); // Wait 2 seconds for complete statements
   }, [detectedLanguage, symptoms, diagnosis, advice, followUpDate, isProcessingSymptoms, isProcessingDiagnosis]);
 
@@ -496,22 +496,22 @@ export default function ActiveConsultationAI() {
         // Don't stop recording for recoverable errors (network, aborted, etc.)
         // Only stop for critical errors (not-allowed, etc.)
         if (errorCode === "not-allowed") {
-          setIsRecording(false);
+        setIsRecording(false);
           toast.error("Microphone permission denied", {
             description: "Please allow microphone access in your browser settings",
-          });
+        });
         } else if (errorCode === "network") {
           // Network errors are recoverable - show warning but don't stop
           toast.warning("Network connection issue", {
             description: "Attempting to reconnect... Speech recognition will continue automatically.",
             duration: 3000,
-          });
+      });
         } else if (!isRecoverable) {
           // Only stop for non-recoverable errors
           setIsRecording(false);
           toast.error("Speech recognition error", {
             description: error.message || "Please try again",
-          });
+      });
         } else {
           // Recoverable errors - just log, don't stop recording
           console.log("[ActiveConsultationAI] Recoverable error, continuing...");
@@ -635,14 +635,14 @@ export default function ActiveConsultationAI() {
           autoGainControl: true,
         }
       });
-
+      
       setMicPermissionStatus("granted");
       
       // Start speech recognition
       if (speechRecognitionRef.current) {
         // CRITICAL: Set language BEFORE starting (especially important for Urdu)
         speechRecognitionRef.current.setLanguage(detectedLanguage);
-        
+      
         // Small delay to ensure language is properly set before starting (helps with Urdu)
         await new Promise(resolve => setTimeout(resolve, 50));
         
@@ -655,12 +655,12 @@ export default function ActiveConsultationAI() {
             description: "Listening in Urdu. Speak clearly for best recognition.",
             duration: 3000,
           });
-        } else {
+      } else {
           toast.success("🎤 Recording started", {
             description: `Listening in ${detectedLanguage.charAt(0).toUpperCase() + detectedLanguage.slice(1)}. AI optimized for this language.`,
           });
-        }
-      } else {
+      }
+    } else {
         throw new Error("Speech recognition not initialized");
       }
 
@@ -687,10 +687,10 @@ export default function ActiveConsultationAI() {
     }
 
     toast.info("Recording stopped", {
-      description: `Recorded ${Math.floor(recordingTime / 60)}:${String(recordingTime % 60).padStart(2, '0')}`,
-    });
+         description: `Recorded ${Math.floor(recordingTime / 60)}:${String(recordingTime % 60).padStart(2, '0')}`,
+       });
   }, [recordingTime, performClinicalAnalysis]);
-
+       
   // Switch Speaker
   const handleSwitchSpeaker = () => {
     const newSpeaker = currentSpeaker === "patient" ? "doctor" : "patient";
@@ -721,7 +721,7 @@ export default function ActiveConsultationAI() {
         quantity: structure.quantity,
         dosage: structure.dosage,
       }));
-
+      
       setAiDosageRecommendation({
         dosage: structure.dosage,
         frequency: structure.frequency,

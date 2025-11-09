@@ -288,7 +288,7 @@ export class SpeechRecognitionService {
           retryDelay = Math.min(200 * Math.pow(2, this.networkErrorCount - 1), 5000);
           console.log(`[SpeechRecognition] 🔄 Network error retry #${this.networkErrorCount}, waiting ${retryDelay}ms before restart`);
         } else {
-          console.log('[SpeechRecognition] 🔄 Restarting after recoverable error:', errorCode);
+        console.log('[SpeechRecognition] 🔄 Restarting after recoverable error:', errorCode);
         }
         
         if (this.restartTimeout) {
@@ -303,7 +303,7 @@ export class SpeechRecognitionService {
                 this.networkErrorCount = 0;
                 console.log('[SpeechRecognition] ✅ Restarted after network error - connection restored');
               } else {
-                console.log('[SpeechRecognition] ✅ Restarted after error');
+              console.log('[SpeechRecognition] ✅ Restarted after error');
               }
             } catch (restartError: any) {
               console.error('[SpeechRecognition] ❌ Restart after error failed', restartError);
@@ -356,7 +356,7 @@ export class SpeechRecognitionService {
               console.log('[SpeechRecognition] ✅ Restarted successfully after network issues - buffer preserved');
               this.networkErrorCount = 0; // Reset on successful restart
             } else {
-              console.log('[SpeechRecognition] ✅ Restarted successfully - buffer preserved');
+            console.log('[SpeechRecognition] ✅ Restarted successfully - buffer preserved');
             }
           } catch (e: any) {
             console.error('[SpeechRecognition] ❌ Restart failed:', e.name, e.message);

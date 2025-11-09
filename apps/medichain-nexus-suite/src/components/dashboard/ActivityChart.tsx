@@ -15,7 +15,7 @@ import {
 } from "recharts";
 
 interface ActivityChartProps {
-  title: string;
+  title?: string;
   description?: string;
   data: any[];
   type?: "line" | "area" | "bar";
@@ -113,10 +113,12 @@ export const ActivityChart = ({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
+      {title && (
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
+        </CardHeader>
+      )}
       <CardContent>
         <ResponsiveContainer width="100%" height={height}>
           {renderChart()}

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@admin/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
+import { AdminRouteGuard } from "./components/AdminRouteGuard";
 import Dashboard from "./pages/Dashboard";
 import Map from "./pages/Map";
 import Analytics from "./pages/Analytics";
@@ -11,6 +12,7 @@ import Hospitals from "./pages/entities/Hospitals";
 import Clinics from "./pages/entities/Clinics";
 import Pharmacies from "./pages/entities/Pharmacies";
 import Labs from "./pages/entities/Labs";
+import EntityDetail from "./pages/entities/EntityDetail";
 import Users from "./pages/Users";
 import Permissions from "./pages/Permissions";
 import Alerts from "./pages/Alerts";
@@ -28,14 +30,18 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<DashboardLayout />}>
+          <Route path="/" element={<AdminRouteGuard><DashboardLayout /></AdminRouteGuard>}>
             <Route index element={<Dashboard />} />
             <Route path="map" element={<Map />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="entities/hospitals" element={<Hospitals />} />
+            <Route path="entities/hospitals/detail" element={<EntityDetail />} />
             <Route path="entities/clinics" element={<Clinics />} />
+            <Route path="entities/clinics/detail" element={<EntityDetail />} />
             <Route path="entities/pharmacies" element={<Pharmacies />} />
+            <Route path="entities/pharmacies/detail" element={<EntityDetail />} />
             <Route path="entities/labs" element={<Labs />} />
+            <Route path="entities/labs/detail" element={<EntityDetail />} />
             <Route path="users" element={<Users />} />
             <Route path="permissions" element={<Permissions />} />
             <Route path="alerts" element={<Alerts />} />

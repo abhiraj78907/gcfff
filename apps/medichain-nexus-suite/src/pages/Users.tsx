@@ -358,34 +358,34 @@ const Users = () => {
               )}
             </div>
           ) : (
-            <div className="space-y-4">
+          <div className="space-y-4">
               {users.map((user) => (
                 <div
                   key={user.id}
                   className="flex items-center justify-between p-4 border border-border rounded-lg hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-center gap-4">
-                    <Avatar>
-                      <AvatarFallback className="bg-gradient-primary text-white">
+                <div className="flex items-center gap-4">
+                  <Avatar>
+                    <AvatarFallback className="bg-gradient-primary text-white">
                         {user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h4 className="font-semibold">{user.name}</h4>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        {user.email}
-                      </div>
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h4 className="font-semibold">{user.name}</h4>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="h-3 w-3" />
+                      {user.email}
+                    </div>
                       {user.entityId && (
                         <p className="text-xs text-muted-foreground mt-1">Entity: {user.entityId}</p>
                       )}
-                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                      <Shield className="h-3 w-3 mr-1" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                    <Shield className="h-3 w-3 mr-1" />
                       {getRoleDisplay(user.roles)}
-                    </Badge>
+                  </Badge>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -402,10 +402,10 @@ const Users = () => {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
+          </div>
           )}
         </CardContent>
       </Card>
