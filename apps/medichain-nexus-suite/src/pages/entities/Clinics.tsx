@@ -247,8 +247,7 @@ const Clinics = () => {
           {filteredEntities.map((entity) => (
             <Card 
               key={entity.id} 
-              className="hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => navigate(`/entities/clinics/detail?id=${entity.id}`)}
+              className="hover:shadow-lg transition-shadow"
             >
               <CardHeader>
                 <div className="flex items-start justify-between">

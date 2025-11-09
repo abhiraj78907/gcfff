@@ -3,7 +3,7 @@
  * Includes notifications dropdown with dynamic alerts, search, and user menu
  */
 
-import { Bell, Search, LogOut, Settings, UserCircle, ChevronDown, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { Bell, Search, LogOut, Settings, ChevronDown, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@admin/components/ui/button";
 import { Input } from "@admin/components/ui/input";
 import {
@@ -40,12 +40,17 @@ export const DashboardHeader = () => {
   const unreadCount = alerts.length;
 
   const handleLogout = () => {
-    logout();
-    navigate("/onboard/login", { replace: true });
-  };
-
-  const handleProfile = () => {
-    navigate("/settings");
+    try {
+      // Call logout function to clear auth state
+      logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+    // Immediately redirect to login page using full URL
+    // This ensures a full page reload and prevents back navigation
+    // Uses window.location.origin to work in both dev and production
+    const loginUrl = `${window.location.origin}/onboard/login`;
+    window.location.replace(loginUrl);
   };
 
   const handleSettings = () => {
@@ -78,17 +83,16 @@ export const DashboardHeader = () => {
     }
   };
 
-  if (!user) return null;
-
-  const userInitials = user.name
-    .split(" ")
+  // Always show header, use fallback if user is not available
+  const userInitials = user?.name
+    ?.split(" ")
     .map((n) => n[0])
     .join("")
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2) || "AD";
 
   return (
-    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 sticky top-0 z-10">
+    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 sticky top-0 z-50 visible">
       <div className="flex items-center gap-4 flex-1">
         <SidebarTrigger className="text-foreground" />
         <div className="relative w-full max-w-md">
@@ -179,7 +183,7 @@ export const DashboardHeader = () => {
                 {userInitials}
               </div>
               <div className="text-left hidden md:block">
-                <p className="text-sm font-medium">{user.name}</p>
+                <p className="text-sm font-medium">{user?.name || "Admin User"}</p>
                 <p className="text-xs text-muted-foreground">Administrator</p>
               </div>
               <ChevronDown className="h-4 w-4" />
@@ -188,16 +192,12 @@ export const DashboardHeader = () => {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+                <p className="text-sm font-medium">{user?.name || "Admin User"}</p>
+                <p className="text-xs text-muted-foreground">{user?.email || "admin@medichain.dev"}</p>
                 <p className="text-xs text-muted-foreground">Administrator</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleProfile}>
-              <UserCircle className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSettings}>
               <Settings className="mr-2 h-4 w-4" />
               Settings
