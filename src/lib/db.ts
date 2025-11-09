@@ -54,21 +54,21 @@ export const paths = {
   medicines: (entityId: EntityId) => `${entityPath(entityId)}/medicines`,
   medicine: (entityId: EntityId, medicineId: string) =>
     `${entityPath(entityId)}/medicines/${medicineId}`,
-  pharmacyInventory: (entityId: EntityId) => `${entityPath(entityId)}/pharmacy/inventory`,
+  pharmacyInventory: (entityId: EntityId) => `${entityPath(entityId)}/pharmacyInventory`,
   pharmacyInventoryItem: (entityId: EntityId, itemId: string) =>
-    `${entityPath(entityId)}/pharmacy/inventory/${itemId}`,
+    `${entityPath(entityId)}/pharmacyInventory/${itemId}`,
   pharmacyDispensations: (entityId: EntityId) =>
-    `${entityPath(entityId)}/pharmacy/dispensations`,
+    `${entityPath(entityId)}/pharmacyDispensations`,
   pharmacyDispensation: (entityId: EntityId, dispensationId: string) =>
-    `${entityPath(entityId)}/pharmacy/dispensations/${dispensationId}`,
+    `${entityPath(entityId)}/pharmacyDispensations/${dispensationId}`,
   
   // Lab
-  labRequests: (entityId: EntityId) => `${entityPath(entityId)}/lab/requests`,
+  labRequests: (entityId: EntityId) => `${entityPath(entityId)}/labRequests`,
   labRequest: (entityId: EntityId, requestId: string) =>
-    `${entityPath(entityId)}/lab/requests/${requestId}`,
-  labResults: (entityId: EntityId) => `${entityPath(entityId)}/lab/results`,
+    `${entityPath(entityId)}/labRequests/${requestId}`,
+  labResultsCollection: (entityId: EntityId) => `${entityPath(entityId)}/labResults`,
   labResult: (entityId: EntityId, resultId: string) =>
-    `${entityPath(entityId)}/lab/results/${resultId}`,
+    `${entityPath(entityId)}/labResults/${resultId}`,
   
   // Queue
   receptionQueue: (entityId: EntityId, subEntryId: string) =>
@@ -101,7 +101,7 @@ export const paths = {
   prescriptions: (entityId: EntityId, patientId: string) =>
     `${entityPath(entityId)}/patients/${patientId}/prescriptions`,
   dispensations: (entityId: EntityId) =>
-    `${entityPath(entityId)}/pharmacy/dispensations`,
+    `${entityPath(entityId)}/pharmacyDispensations`,
 };
 
 // Basic helpers
